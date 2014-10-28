@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace Maths
@@ -80,7 +82,7 @@ namespace Maths
                         for (; i < input.Length; i++)
                         {
                             char s = input[i];
-                            if (Char.IsDigit(s) || s == '.')
+                            if (Char.IsDigit(s) || s == '.' || !IsLatinLetter(s))
                             {
                                 i--;
                                 break;
@@ -101,20 +103,10 @@ namespace Maths
             return output;
         }
 
-        public double EvaluateRpn(RpnStack inputStack, IEnumerable<Variable> inputVariables = null)
+        public double EvaluateRpn(RpnStack inputStack, ExpandoObject inputVariables = null)
         {
-         /*   var stackVariables = inputStack.GetVariables().ToList();
-            inputVariables = inputVariables ?? new Variable[0];
-
-            if(stackVariables.Any())
-            {
-                if(inputVariables.Count() != stackVariables.Count)
-                {
-                    
-                }
-            }*/
-
             var valStack = new Stack<object>();
+            Dictionary<string, double> inputVariableMap = BuildVariableMap(inputStack.GetVariables().ToArray(), inputVariables);
             while (inputStack.Count > 0)
             {
                 if(!(inputStack.Peek() is Operator))
@@ -132,12 +124,61 @@ namespace Maths
                             op = new Negation();
                             break;
                         }
-                        args.Add(GetDouble(valStack.Pop()));
+                        var argValue = GetArgValue(valStack.Pop(), ref inputVariableMap);
+                        args.Add(argValue);
                     }
                     valStack.Push(op.Evaluate(args.ToArray()));
                 }
             }
             return valStack.Count == 1 ? Convert.ToDouble(valStack.Peek()) : 0;
+        }
+
+        protected static double GetArgValue(object arg, ref Dictionary<string, double> inputVariableMap)
+        {
+            var variable = arg as Variable;
+            return variable != null ? inputVariableMap[variable.Name] : GetDouble(arg);
+        }
+
+        protected static bool IsLatinLetter(char c)
+        {
+            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+        }
+
+        private Dictionary<string, double> BuildVariableMap(Variable[] stackVariables, ExpandoObject inputVariables)
+        {
+            var map = new Dictionary<string, double>();
+            if(inputVariables != null)
+            {
+                var names = stackVariables.Select(s => s.Name).Distinct().ToArray();
+                var inputNames = inputVariables.Select(s => s.Key).Distinct().ToArray();
+                if (!names.All(inputNames.Contains))
+                {
+                    throw new ArgumentException(
+                        String.Format("Not enough varibales were supplied for the function. Required arguments are ({0}) and the supplied arguments were ({1}).",
+                            string.Join(", ", names), string.Join(", ", inputNames)));
+                }
+                foreach (var name in names)
+                {
+                    var variable = inputVariables.FirstOrDefault(iv => iv.Key == name);
+                    if (!map.ContainsKey(name))
+                    {
+                        map.Add(name, GetDouble(variable.Value));
+                    }
+                }
+            }
+            return map;
+        }
+
+        private List<KeyValuePair<string, double>> GetPropertyValues(ExpandoObject inputVariables)
+        {
+            var result = new List<KeyValuePair<string, double>>();
+            var objectDictionary = (IDictionary<string, object>) inputVariables;
+            foreach (KeyValuePair<string, object> pair in objectDictionary)
+            {
+                var value = GetDouble(pair.Value);
+                result.Add(new KeyValuePair<string, double>(pair.Key, value));
+            }
+            return result;
         }
 
         private static double GetDouble(object obj)
@@ -180,9 +221,9 @@ namespace Maths
             return input;
         }
 
-        public double EvaluateExpression(string input)
+        public double EvaluateExpression(string input, ExpandoObject inputVariables = null)
         {
-            return EvaluateRpn(ToRpn(input));
+            return EvaluateRpn(ToRpn(input), inputVariables);
         }
 
         public double EvaluateExpression(double initalValue, string input)

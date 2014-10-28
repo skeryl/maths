@@ -19,7 +19,6 @@ namespace Maths
             return ToArray().OfType<Variable>();
         }
 
-
         public void ReverseStack()
         {
             var tempList = new List<object>();
