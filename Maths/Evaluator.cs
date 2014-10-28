@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Maths
 {
-    public class MathUtilities
+    public class Evaluator
     {
         public const double Pi =
             3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067982148086513282306647093844609550582231725359408128481117450284102;
@@ -103,7 +103,7 @@ namespace Maths
             return output;
         }
 
-        public double EvaluateRpn(RpnStack inputStack, ExpandoObject inputVariables = null)
+        public double EvaluateRpn(RpnStack inputStack, dynamic inputVariables = null)
         {
             var valStack = new Stack<object>();
             Dictionary<string, double> inputVariableMap = BuildVariableMap(inputStack.GetVariables().ToArray(), inputVariables);
@@ -144,13 +144,14 @@ namespace Maths
             return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
         }
 
-        private Dictionary<string, double> BuildVariableMap(Variable[] stackVariables, ExpandoObject inputVariables)
+        private Dictionary<string, double> BuildVariableMap(Variable[] stackVariables, dynamic inputVariables)
         {
             var map = new Dictionary<string, double>();
             if(inputVariables != null)
             {
                 var names = stackVariables.Select(s => s.Name).Distinct().ToArray();
-                var inputNames = inputVariables.Select(s => s.Key).Distinct().ToArray();
+                IDictionary<string, object> inputKeyPairs = GetInputPairs(inputVariables);
+                var inputNames = inputKeyPairs.Select(s => s.Key).Distinct().ToArray();
                 if (!names.All(inputNames.Contains))
                 {
                     throw new ArgumentException(
@@ -159,7 +160,7 @@ namespace Maths
                 }
                 foreach (var name in names)
                 {
-                    var variable = inputVariables.FirstOrDefault(iv => iv.Key == name);
+                    var variable = inputKeyPairs.FirstOrDefault(iv => iv.Key == name);
                     if (!map.ContainsKey(name))
                     {
                         map.Add(name, GetDouble(variable.Value));
@@ -167,6 +168,18 @@ namespace Maths
                 }
             }
             return map;
+        }
+
+        private IDictionary<string, object> GetInputPairs(object inputVariables)
+        {
+            Type type = inputVariables.GetType();
+            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var result = new Dictionary<string, object>();
+            foreach (PropertyInfo property in properties)
+            {
+                result.Add(property.Name, property.GetValue(inputVariables, null));
+            }
+            return result;
         }
 
         private List<KeyValuePair<string, double>> GetPropertyValues(ExpandoObject inputVariables)
@@ -221,16 +234,11 @@ namespace Maths
             return input;
         }
 
-        public double EvaluateExpression(string input, ExpandoObject inputVariables = null)
+        public double EvaluateExpression(string input, dynamic inputVariables = null)
         {
             return EvaluateRpn(ToRpn(input), inputVariables);
         }
-
-        public double EvaluateExpression(double initalValue, string input)
-        {
-            return EvaluateRpn(ToRpn(String.Concat(initalValue, input)));
-        }
-
+        
         /// <summary>
         /// Only works for values of x less than or equal to 1 and greater than 0 for now...
         /// </summary>

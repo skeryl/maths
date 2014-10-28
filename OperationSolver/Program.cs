@@ -9,7 +9,7 @@ namespace OperationSolver
     {
         static void Main(string[] args)
         {
-            var math = new MathUtilities();
+            var math = new Evaluator();
             Console.WriteLine("Enter an expression to evaluate:");
             string input;
             while ((input = Console.ReadLine()) != "exit")
