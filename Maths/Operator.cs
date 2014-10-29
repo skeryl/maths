@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.Serialization;
 
 namespace Maths
 {
@@ -10,7 +11,7 @@ namespace Maths
         Right
     };
 
-    [Serializable]
+    [DataContract]
     public abstract class Operator : IOperator
     {
         public static Dictionary<char, Operator> OperatorSignMap = new Dictionary<char, Operator>
@@ -24,9 +25,16 @@ namespace Maths
                 { '-', new Subtraction()}
         };
 
+        [DataMember]
         public abstract char Sign { get; }
+
+        [DataMember]
         public abstract int Precedence { get; }
+
+        [DataMember]
         public abstract Association Association { get; }
+
+        [DataMember]
         public abstract int NumberArguments { get; }
 
         public double Evaluate(params double[] args)

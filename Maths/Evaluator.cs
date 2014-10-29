@@ -9,16 +9,16 @@ namespace Maths
 {
     public class Evaluator
     {
-        public const double Pi =
-            3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067982148086513282306647093844609550582231725359408128481117450284102;
+        #region constants
+        public const double Pi = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067982148086513282306647093844609550582231725359408128481117450284102;
         public const double E = 2.71828182845904523536028747135266249775724709369995;
         protected const double Epsilon = 0.0000000000000000000001;
+        #endregion
 
-        public RpnStack ToRpn(string infixString)
+        public Expression Parse(string infixString)
         {
-            //infixString = ReplaceConstants(infixString);
             var operators = new Stack<Operator>();
-            var output = new RpnStack();
+            var output = new Stack<object>();
             string input = infixString.Replace(" ", "");
             for (int i = 0; i < input.Length; i++)
             {
@@ -34,18 +34,19 @@ namespace Maths
                     {
                         if(op is RightParentheses)
                         {
-                            while( operators.Count > 0 && !(operators.Peek() is LeftParentheses))
+                            while(operators.Any() && !(operators.Peek() is LeftParentheses))
                             {
                                 output.Push(operators.Pop());
                             }   
-                            if(operators.Count == 0)
-                                throw new ArgumentException("Invalid Argument: Mismatched Parenthesis");
+                            if(!operators.Any())
+                                throw new ArgumentException("Mismatched parenthesis.");
                             operators.Pop();
                         }
                         else
                         {
-                            if ( (operators.Count > 0) && (operators.Peek().Sign != '(') && ((operators.Count == 0) || (op.Precedence <= operators.Peek().Precedence && op.Association == Association.Left) ||
-                            (op.Precedence < operators.Peek().Precedence && op.Association == Association.Right)))
+                            if ((operators.Any() && !(operators.Peek() is LeftParentheses)) 
+                                && (!operators.Any() || ((op.Precedence <= operators.Peek().Precedence && op.Association == Association.Left)
+                                    || (op.Precedence < operators.Peek().Precedence && op.Association == Association.Right))))
                             {
                                 output.Push(operators.Pop());
                             }
@@ -79,7 +80,8 @@ namespace Maths
                     else
                     {
                         var builder = new StringBuilder();
-                        for (; i < input.Length; i++)
+                        builder.Append(c);
+                        for (++i; i < input.Length; i++)
                         {
                             char s = input[i];
                             if (Char.IsDigit(s) || s == '.' || !IsLatinLetter(s))
@@ -93,29 +95,34 @@ namespace Maths
                     }
                 }
             }
-            while(operators.Count > 0)
+            while(operators.Any())
             {
                 if (operators.Peek() is Parentheses)
-                    throw new ArgumentException("Invalid Argument: Mismatched Parenthesis");
+                    throw new ArgumentException("Mismatched parenthesis.");
                 output.Push(operators.Pop());
             }
-            output.ReverseStack();
-            return output;
+            return new Expression(this, output.ReverseSelf(), infixString);
         }
 
-        public double EvaluateRpn(RpnStack inputStack, dynamic inputVariables = null)
+        internal double EvaluateRpn(Stack<object> inputStack, dynamic inputVariables = null)
         {
-            var valStack = new Stack<object>();
             Dictionary<string, double> inputVariableMap = BuildVariableMap(inputStack.GetVariables().ToArray(), inputVariables);
+            return EvaluateRpn(inputStack, inputVariableMap);
+        }
+
+        internal double EvaluateRpn(Stack<object> input, Dictionary<string, double> inputVariableMap)
+        {
+            var inputStack = input.Clone();
+            var valStack = new Stack<object>();
             while (inputStack.Count > 0)
             {
-                if(!(inputStack.Peek() is Operator))
+                if (!(inputStack.Peek() is Operator))
                 {
                     valStack.Push(inputStack.Pop());
                 }
                 else
                 {
-                    var op = (Operator) (inputStack.Pop());
+                    var op = (Operator)(inputStack.Pop());
                     var args = new List<double>();
                     for (int i = 0; i < op.NumberArguments; i++)
                     {
@@ -177,6 +184,11 @@ namespace Maths
             {
                 return expando;
             }
+            var dictionary = inputVariables as IDictionary<string, object>;
+            if(dictionary != null)
+            {
+                return dictionary;
+            }
             Type type = inputVariables.GetType();
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             var result = new Dictionary<string, object>();
@@ -230,7 +242,12 @@ namespace Maths
 
         public double EvaluateExpression(string input, dynamic inputVariables = null)
         {
-            return EvaluateRpn(ToRpn(input), inputVariables);
+            return EvaluateRpn(Parse(input).RpnStack, inputVariables);
+        }
+
+        public double EvaluateExpression(string input, Dictionary<string, double> inputVariableMap)
+        {
+            return EvaluateRpn(Parse(input).RpnStack, inputVariableMap);
         }
         
         /// <summary>

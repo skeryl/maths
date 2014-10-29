@@ -36,7 +36,7 @@ namespace OperationSolver
                             var varValue = splitVar[1].Trim();
                             expandoArg.Add(varName, varValue);
                         }
-                        Console.WriteLine(math.EvaluateExpression(expression, (ExpandoObject)expandoArg));
+                        Console.WriteLine(math.EvaluateExpression(expression, expandoArg));
                     }
                 }
                 catch (Exception e)
