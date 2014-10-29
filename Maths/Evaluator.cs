@@ -16,7 +16,7 @@ namespace Maths
 
         public RpnStack ToRpn(string infixString)
         {
-            infixString = ReplaceConstants(infixString);
+            //infixString = ReplaceConstants(infixString);
             var operators = new Stack<Operator>();
             var output = new RpnStack();
             string input = infixString.Replace(" ", "");
@@ -172,6 +172,11 @@ namespace Maths
 
         private IDictionary<string, object> GetInputPairs(object inputVariables)
         {
+            var expando = inputVariables as ExpandoObject;
+            if(expando != null)
+            {
+                return expando;
+            }
             Type type = inputVariables.GetType();
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             var result = new Dictionary<string, object>();
@@ -182,23 +187,12 @@ namespace Maths
             return result;
         }
 
-        private List<KeyValuePair<string, double>> GetPropertyValues(ExpandoObject inputVariables)
-        {
-            var result = new List<KeyValuePair<string, double>>();
-            var objectDictionary = (IDictionary<string, object>) inputVariables;
-            foreach (KeyValuePair<string, object> pair in objectDictionary)
-            {
-                var value = GetDouble(pair.Value);
-                result.Add(new KeyValuePair<string, double>(pair.Key, value));
-            }
-            return result;
-        }
-
         private static double GetDouble(object obj)
         {
-            if (obj is string)
+            var s = obj as string;
+            if (s != null)
             {
-                return double.Parse((string)obj);
+                return double.Parse(s);
             }
             if (obj is char)
             {

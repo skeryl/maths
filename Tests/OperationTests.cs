@@ -35,6 +35,11 @@ namespace Tests
             var value2 = math.EvaluateExpression(expression1, new { x = 1, y = 2, z = 2 });
             Assert.AreEqual(value2, 10);
 
+            const string expression2 = "((variableOne*2+3)/variableTwo)+variableOne";
+
+            var value3 = math.EvaluateExpression(expression2, new { variableOne = 2, variableTwo = 10 });
+            Assert.AreEqual(value3, 2.7);
+
         }
     }
 }
