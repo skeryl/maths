@@ -81,11 +81,11 @@ namespace Tests
         public void TestXmlSerialization()
         {
             // todo: make this Xml Serializable
-            /*Expression expression = new Evaluator().Parse("(2*x^2) + (3*y) + z");
-            var xml = ToXml(expression);
-            var deserialized = FromXml<Expression>(xml);
+            Expression expression = new Evaluator().Parse("(2*x^2) + (3*y) + z");
+            var xml = expression.SerializeXml();
+            var deserialized = xml.DeserializeXml<Expression>();
             Assert.IsNotNull(deserialized);
-            Assert.AreEqual(expression.ToString(), deserialized.ToString());*/
+            Assert.AreEqual(expression.ToString(), deserialized.ToString());
         }
 
         private string ToJson<T>(T obj)
@@ -98,27 +98,6 @@ namespace Tests
             return JsonConvert.DeserializeObject<T>(str);
         }
 
-        private string ToXml<T>(T obj)
-        {
-            var serializer = new XmlSerializer(typeof(T));
-            var stringBuilder = new StringBuilder();
-            using(var textWriter = new StringWriter(stringBuilder))
-            {
-                serializer.Serialize(textWriter, obj);
-            }
-            return stringBuilder.ToString();
-        }
-
-        private T FromXml<T>(string str) where T : class
-        {
-            var serializer = new XmlSerializer(typeof(T));
-            T obj;
-            using(var textReader = new StringReader(str))
-            {
-                obj = serializer.Deserialize(textReader) as T;
-            }
-            return obj;
-        }
 
     }
 }
