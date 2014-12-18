@@ -1,52 +1,89 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
+using System.Dynamic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
-using System.Xml;
-using System.Xml.Schema;
-using System.Xml.Serialization;
+using System.Text.RegularExpressions;
 
 namespace Maths
 {
-    [Serializable]
-    public class Expression : IXmlSerializable, ISerializable
+    [DataContract]
+    public class Expression
     {
-        private readonly Evaluator _evaluator;
+        private const string ExpressionRegex = "(?<operator>[()^*/+-])?(?<number>([1-9.]{1})?[0-9.]{1,})?(?<variable>[a-zA-Z]{1,})?";
+        private static readonly Regex Regex = new Regex(ExpressionRegex, RegexOptions.Compiled | RegexOptions.ExplicitCapture);
 
+        [DataMember]
         public string OriginalInput { get; set; }
         
-        [XmlIgnore]
+        [DataMember]
         public Stack<object> RpnStack { get; set; }
-
-        public Expression()
-        {
-            _evaluator = new Evaluator();
-        }
 
         public Expression(string expressionToParse)
         {
-            _evaluator = new Evaluator();
-            var toClone = _evaluator.Parse(expressionToParse);
             OriginalInput = expressionToParse;
-            RpnStack = toClone.RpnStack;
+            RpnStack = Parse(expressionToParse);
         }
 
-        internal Expression(Evaluator evaluator, Stack<object> rpnStack, string originalInput)
+        public static Stack<object> Parse(string infixString)
         {
-            RpnStack = rpnStack;
-            OriginalInput = originalInput;
-            _evaluator = evaluator;
-        }
-
-        public double Evaluate(dynamic inputVariables = null)
-        {
-            return _evaluator.EvaluateRpn(RpnStack, inputVariables);
-        }
-
-        public double Evaluate(Dictionary<string, double> inputVariableMap)
-        {
-            return _evaluator.EvaluateRpn(RpnStack, inputVariableMap);
+            var expression = infixString.Replace(" ", "");
+            var objects = ParseObjects(expression);
+            var operators = new Stack<Operator>();
+            var output = new Stack<object>();
+            foreach (object o in objects)
+            {
+                var op = o as Operator;
+                if (op != null)
+                {
+                    if (op is LeftParentheses)
+                    {
+                        operators.Push(op);
+                    }
+                    else
+                    {
+                        if (op is RightParentheses)
+                        {
+                            while (operators.Any() && !(operators.Peek() is LeftParentheses))
+                            {
+                                output.Push(operators.Pop());
+                            }
+                            if (!operators.Any())
+                                throw new ArgumentException("Mismatched parenthesis.");
+                            operators.Pop();
+                        }
+                        else
+                        {
+                            if ((operators.Any() && !(operators.Peek() is LeftParentheses)) && (!operators.Any() ||
+                                 ((op.Precedence <= operators.Peek().Precedence && op.Association == Association.Left)
+                                  || (op.Precedence < operators.Peek().Precedence && op.Association == Association.Right))))
+                            {
+                                output.Push(operators.Pop());
+                            }
+                            operators.Push(op);
+                        }
+                    }
+                }
+                else
+                {
+                    if (o is double)
+                    {
+                        output.Push((double)o);
+                    }
+                    else
+                    {
+                        output.Push(new Variable { Name = o.ToString(), Value = double.NaN });
+                    }
+                }
+            }
+            while (operators.Any())
+            {
+                if (operators.Peek() is Parentheses)
+                    throw new ArgumentException("Mismatched parenthesis.");
+                output.Push(operators.Pop());
+            }
+            return output.ReverseSelf();
         }
 
         public override string ToString()
@@ -55,63 +92,146 @@ namespace Maths
                 return String.Format("f({0}) = {1}", String.Join(", ", RpnStack.GetVariables().Select(v => v.Name)), OriginalInput);
             return OriginalInput;
         }
-        
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
+
+        public double Evaluate(dynamic inputVariables = null)
         {
-            info.AddValue("OriginalInput", OriginalInput);
-            info.AddValue("Stack", RpnStack.ToList());
+            Dictionary<string, double> inputVariableMap = BuildVariableMap(RpnStack.GetVariables().ToArray(), inputVariables);
+            return Evaluate(inputVariableMap);
         }
 
-        public XmlSchema GetSchema()
+        public double Evaluate(Dictionary<string, double> inputVariableMap)
         {
-            return null;
-        }
-
-        public void WriteXml(XmlWriter writer)
-        {
-            writer.WriteAttributeString("OriginalInput", OriginalInput);
-            writer.WriteStartElement("RpnStack");
-            writer.WriteAttributeString("Count", RpnStack.Count.ToString(CultureInfo.InvariantCulture));
-            var list = RpnStack.ToList();
-            foreach (object obj in list)
+            var inputStack = RpnStack.Clone();
+            var valStack = new Stack<object>();
+            while (inputStack.Count > 0)
             {
-                var toAdd = obj.SerializeXml(true);
-                writer.WriteStartElement("Item");
-                writer.WriteAttributeString("type", obj.GetType().FullName);
-                writer.WriteValue(toAdd);
-                writer.WriteEndElement();
-            }
-            writer.WriteEndElement();
-        }
-
-        public void ReadXml(XmlReader reader)
-        {
-            OriginalInput = reader["OriginalInput"];
-            RpnStack = new Stack<object>();
-            reader.ReadStartElement();
-            int count = int.Parse(reader["Count"]);
-            int ix = 0;
-            if (reader.ReadToDescendant("Item"))
-            {
-                do
+                if (!(inputStack.Peek() is Operator))
                 {
-                    string typeName = reader["type"];
-                    //if (!string.IsNullOrEmpty(typeName))
+                    valStack.Push(inputStack.Pop());
+                }
+                else
+                {
+                    var op = (Operator)(inputStack.Pop());
+                    var args = new List<double>();
+                    for (int i = 0; i < op.NumberArguments; i++)
                     {
-                        string xml = reader.NodeType == XmlNodeType.Element
-                                         ? reader.ReadElementContentAsString()
-                                         : reader.ReadContentAsString();
-                        object obj = xml.DeserializeXml(Type.GetType(typeName));
-                        RpnStack.Push(obj);
+                        if (op is Subtraction && !valStack.Any())
+                        {
+                            op = new Negation();
+                            break;
+                        }
+                        var argValue = GetArgValue(valStack.Pop(), ref inputVariableMap);
+                        args.Add(argValue);
                     }
-
-                    ix++;
-                } while (reader.ReadToNextSibling("Item"));
+                    valStack.Push(op.Evaluate(args.ToArray()));
+                }
             }
-            //}
-            if(ix != count - 1)
-                throw new SerializationException();
-            reader.ReadEndElement();
+            return valStack.Count == 1 ? Convert.ToDouble(valStack.Peek()) : 0;
+        }
+
+        public static double EvaluateExpression(string input, dynamic inputVariables = null)
+        {
+            return new Expression(input).Evaluate(inputVariables);
+        }
+
+        public static double EvaluateExpression(string input, Dictionary<string, double> inputVariableMap)
+        {
+            return new Expression(input).Evaluate(inputVariableMap);
+        }
+
+        private static List<object> ParseObjects(string expression)
+        {
+            var matches = Regex.Matches(expression);
+            var objectsWithIndices = new List<Tuple<int, object>>();
+            foreach (Match match in matches)
+            {
+                Operator op;
+                var operatorGroup = match.Groups["operator"];
+                if (operatorGroup.Success && Operator.TryGetOperator(operatorGroup.Value.Trim().First(), out op))
+                {
+                    objectsWithIndices.Add(new Tuple<int, object>(operatorGroup.Index, op));
+                }
+                double number;
+                var numberGroup = match.Groups["number"];
+                if (numberGroup.Success && double.TryParse(numberGroup.Value.Trim(), out number))
+                {
+                    objectsWithIndices.Add(new Tuple<int, object>(operatorGroup.Index, number));
+                }
+                var variableGroup = match.Groups["variable"];
+                if (variableGroup.Success)
+                {
+                    objectsWithIndices.Add(new Tuple<int, object>(operatorGroup.Index, variableGroup.Value.Trim()));
+                }
+            }
+            return new List<object>(objectsWithIndices.OrderBy(o => o.Item1).Select(o => o.Item2));
+        }
+
+        private Dictionary<string, double> BuildVariableMap(Variable[] stackVariables, dynamic inputVariables)
+        {
+            var map = new Dictionary<string, double>();
+            if (inputVariables != null)
+            {
+                var names = stackVariables.Select(s => s.Name).Distinct().ToArray();
+                IDictionary<string, object> inputKeyPairs = GetInputPairs(inputVariables);
+                var inputNames = inputKeyPairs.Select(s => s.Key).Distinct().ToArray();
+                if (!names.All(inputNames.Contains))
+                {
+                    throw new ArgumentException(
+                        String.Format("Not enough varibales were supplied for the function. Required arguments are ({0}) and the supplied arguments were ({1}).",
+                            string.Join(", ", names), string.Join(", ", inputNames)));
+                }
+                foreach (var name in names)
+                {
+                    var variable = inputKeyPairs.FirstOrDefault(iv => iv.Key == name);
+                    if (!map.ContainsKey(name))
+                    {
+                        map.Add(name, GetDouble(variable.Value));
+                    }
+                }
+            }
+            return map;
+        }
+
+        private IDictionary<string, object> GetInputPairs(object inputVariables)
+        {
+            var expando = inputVariables as ExpandoObject;
+            if (expando != null)
+            {
+                return expando;
+            }
+            var dictionary = inputVariables as IDictionary<string, object>;
+            if (dictionary != null)
+            {
+                return dictionary;
+            }
+            Type type = inputVariables.GetType();
+            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var result = new Dictionary<string, object>();
+            foreach (PropertyInfo property in properties)
+            {
+                result.Add(property.Name, property.GetValue(inputVariables, null));
+            }
+            return result;
+        }
+
+        private static double GetDouble(object obj)
+        {
+            var s = obj as string;
+            if (s != null)
+            {
+                return double.Parse(s);
+            }
+            if (obj is char)
+            {
+                return double.Parse(obj.ToString());
+            }
+            return Convert.ToDouble(obj);
+        }
+
+        private static double GetArgValue(object arg, ref Dictionary<string, double> inputVariableMap)
+        {
+            var variable = arg as Variable;
+            return variable != null ? inputVariableMap[variable.Name] : GetDouble(arg);
         }
 
     }

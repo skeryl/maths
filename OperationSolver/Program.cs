@@ -9,7 +9,6 @@ namespace OperationSolver
     {
         static void Main(string[] args)
         {
-            var math = new Evaluator();
             Console.WriteLine("Enter an expression to evaluate:");
             string input;
             while ((input = Console.ReadLine()) != "exit")
@@ -21,7 +20,7 @@ namespace OperationSolver
                     var split = input.Split('|');
                     if (split.Length == 1)
                     {
-                        Console.WriteLine(math.EvaluateExpression(input));
+                        Console.WriteLine(Expression.EvaluateExpression(input));
                     }
                     else if (split.Length > 1)
                     {
@@ -36,7 +35,7 @@ namespace OperationSolver
                             var varValue = splitVar[1].Trim();
                             expandoArg.Add(varName, varValue);
                         }
-                        Console.WriteLine(math.EvaluateExpression(expression, expandoArg));
+                        Console.WriteLine(Expression.EvaluateExpression(expression, expandoArg));
                     }
                 }
                 catch (Exception e)
