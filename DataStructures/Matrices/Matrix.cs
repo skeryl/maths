@@ -88,11 +88,37 @@ namespace DataStructures.Matrices
             return result;
         }
 
+        public Matrix Multiply(Matrix other)
+        {
+            AssertDimension(other, VectorType.Row, NumColumns);
+            var result = new Matrix(NumRows, other.NumColumns);
+            // todo: multiply.
+            return result;
+        }
+
         private static void AssertDimensions(Matrix matrix, int numRows, int numColumns)
         {
             if(matrix.NumRows != numRows || matrix.NumColumns != numColumns)
             {
                 throw new DimensionException(numRows, numColumns);
+            }
+        }
+
+        private static void AssertDimension(Matrix matrix, VectorType type, int number)
+        {
+            bool correct = true;
+            switch (type)
+            {
+                case VectorType.Column:
+                    correct = (number == matrix.NumColumns);
+                    break;
+                case VectorType.Row:
+                    correct = (number == matrix.NumRows);
+                    break;
+            }
+            if (!correct)
+            {
+                throw new DimensionException(type, number);
             }
         }
 
