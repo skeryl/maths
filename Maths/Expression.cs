@@ -129,6 +129,11 @@ namespace Maths
             return valStack.Count == 1 ? Convert.ToDouble(valStack.Peek()) : 0;
         }
 
+        public List<Variable> Variables
+        {
+            get { return RpnStack.OfType<Variable>().ToList(); }
+        } 
+
         public static double EvaluateExpression(string input, dynamic inputVariables = null)
         {
             return new Expression(input).Evaluate(inputVariables);
