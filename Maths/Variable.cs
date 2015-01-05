@@ -16,6 +16,8 @@ namespace Maths
 
         public double Value { get; set; }
 
+        public static IEqualityComparer<Variable> EqualityComparer = new VariableEqualityComparer();
+
         public override string ToString()
         {
             return double.IsNaN(Value) ? Name : string.Format("{0} = {1}", Name, Value);
@@ -37,7 +39,20 @@ namespace Maths
             Name = reader["Name"];
             double value;
             Value = double.TryParse(reader["Value"], out value) ? value : double.NaN;
+        } 
+
+    }
+
+    public class VariableEqualityComparer : IEqualityComparer<Variable>
+    {
+        public bool Equals(Variable x, Variable y)
+        {
+            return x.Name == y.Name;
         }
 
+        public int GetHashCode(Variable obj)
+        {
+            return obj.Name.GetHashCode();
+        }
     }
 }

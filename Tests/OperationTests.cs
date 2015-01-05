@@ -64,6 +64,20 @@ namespace Tests
 
         }
 
+        [Test]
+        public void TestMultipleOccurenceOfVariables()
+        {
+            var expression = new Expression("x^2 + 2*x + 2");
+
+            Assert.AreEqual(expression.Variables.Count, 1);
+
+            double value = expression.Evaluate(new {x = 2});
+            Assert.AreEqual(value, 10);
+
+            value = expression.Evaluate(new {x = 3});
+            Assert.AreEqual(value, 17);
+        }
+
         [Test][Ignore("This isn't supported yet.")]
         public void TestSerializeJson()
         {

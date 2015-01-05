@@ -131,7 +131,7 @@ namespace Maths
 
         public List<Variable> Variables
         {
-            get { return RpnStack.OfType<Variable>().ToList(); }
+            get { return RpnStack.OfType<Variable>().Distinct(Variable.EqualityComparer).ToList(); }
         } 
 
         public static double EvaluateExpression(string input, dynamic inputVariables = null)
