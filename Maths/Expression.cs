@@ -89,7 +89,7 @@ namespace Maths
         public override string ToString()
         {
             if (RpnStack.HasVariables())
-                return String.Format("f({0}) = {1}", String.Join(", ", RpnStack.GetVariables().Select(v => v.Name)), OriginalInput);
+                return String.Format("f({0}) = {1}", String.Join(", ", Variables.Select(v => v.Name)), OriginalInput);
             return OriginalInput;
         }
 
