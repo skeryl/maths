@@ -108,6 +108,33 @@ namespace DataStructures.Matrices
             return result;
         }
 
+        public Matrix Multiply(double scalar)
+        {
+            for (int i = 0; i < NumRows; i++)
+            {
+                for (int j = 0; j < NumColumns; j++)
+                {
+                    this[i, j] *= scalar;
+                }
+            }
+            return this;
+        }
+
+        public static Matrix operator * (Matrix matrix, Matrix other)
+        {
+            return matrix.Multiply(other);
+        }
+
+        public static Matrix operator *(Matrix matrix, double scalar)
+        {
+            return matrix.Multiply(scalar);
+        }
+
+        public static Matrix operator +(Matrix matrix, Matrix other)
+        {
+            return matrix.Add(other);
+        }
+
         public Vector<double> GetRow(int m)
         {
             return new Vector<double>(_matrix[m]);
