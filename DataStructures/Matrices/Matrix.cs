@@ -5,34 +5,36 @@ namespace DataStructures.Matrices
 {
     public class Matrix
     {
-        private double[,] _matrix;
+        private double[][] _matrix;
 
         #region initialization
 
-        private void InitializeRow(int[][] items)
+        private void InitializeRow(double[][] items)
         {
             NumRows = items.Length;
             NumColumns = items[0].Length;
-            _matrix = new double[NumRows, NumColumns];
+            _matrix = new double[NumRows][];
             for (int i = 0; i < NumRows; i++)
             {
+                _matrix[i] = new double[NumColumns];
                 for (int j = 0; j < NumColumns; j++)
                 {
-                    _matrix[i, j] = items[i][j];
+                    _matrix[i][j] = items[i][j];
                 }
             }
         }
 
-        private void InitializeColumn(int[][] items)
+        private void InitializeColumn(double[][] items)
         {
             NumRows = items[0].Length;
             NumColumns = items.Length;
-            _matrix = new double[NumRows, NumColumns];
+            _matrix = new double[NumRows][];
             for (int i = 0; i < NumRows; i++)
             {
+                _matrix[i] = new double[NumColumns];
                 for (int j = 0; j < NumColumns; j++)
                 {
-                    _matrix[i, j] = items[j][i];
+                    _matrix[i][j] = items[j][i];
                 }
             }
         }
@@ -43,10 +45,14 @@ namespace DataStructures.Matrices
         {
             NumRows = numRows;
             NumColumns = numCols;
-            _matrix = new double[NumRows, NumColumns];
+            _matrix = new double[NumRows][];
+            for (int i = 0; i < NumRows; i++)
+            {
+                _matrix[i] = new double[NumColumns];
+            }
         }
 
-        public Matrix(VectorType type, params int[][] items)
+        public Matrix(VectorType type, params double[][] items)
         {
             switch (type)
             {
@@ -67,7 +73,7 @@ namespace DataStructures.Matrices
                 var colStrings = new string[NumColumns];
                 for (int j = 0; j < NumColumns; j++)
                 {
-                    colStrings[j] = _matrix[i, j].ToString();
+                    colStrings[j] = _matrix[i][j].ToString();
                 }
                 builder.AppendLine(String.Format("[{0}]", string.Join(", ", colStrings)));
             }
@@ -92,9 +98,30 @@ namespace DataStructures.Matrices
         {
             AssertDimension(other, VectorType.Row, NumColumns);
             var result = new Matrix(NumRows, other.NumColumns);
-            // todo: multiply.
+            for (int i = 0; i < NumRows; i++)
+            {
+                for (int j = 0; j < other.NumColumns; j++)
+                {
+                    result[i, j] = GetRow(i) * other.GetColumn(j);
+                }
+            }
             return result;
         }
+
+        public Vector<double> GetRow(int m)
+        {
+            return new Vector<double>(_matrix[m]);
+        }
+
+        public Vector<double> GetColumn(int n)
+        {
+            var col = new Vector<double>(NumRows);
+            for (int i = 0; i < NumRows; i++)
+            {
+                col[i] = _matrix[i][n];
+            }
+            return col;
+        } 
 
         private static void AssertDimensions(Matrix matrix, int numRows, int numColumns)
         {
@@ -124,14 +151,20 @@ namespace DataStructures.Matrices
 
         public double this[int row, int column]
         {
-            get { return _matrix[row, column]; }
-            set { _matrix[row, column] = value; }
+            get { return _matrix[row][column]; }
+            set { _matrix[row][column] = value; }
         }
 
-        // n
+        public Vector<double> this[int index, VectorType type = VectorType.Row]
+        {
+            get { return type == VectorType.Row ? GetRow(index) : GetColumn(index); }
+        }
+
+        // m
         public int NumRows { get; protected set; }
         
         // m
         public int NumColumns { get; protected set; }
+
     }
 }

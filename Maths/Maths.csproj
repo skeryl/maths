@@ -69,6 +69,11 @@
     <Compile Include="IOperator.cs" />
     <Compile Include="Evaluator.cs" />
     <Compile Include="MathExtensions.cs" />
+    <Compile Include="OperationProviders\FloatMathProvider.cs" />
+    <Compile Include="OperationProviders\DoubleMathProvider.cs" />
+    <Compile Include="OperationProviders\IMathProvider.cs" />
+    <Compile Include="OperationProviders\IntMathProvider.cs" />
+    <Compile Include="OperationProviders\MathProvider.cs" />
     <Compile Include="Operator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SerializationExtensions.cs" />
