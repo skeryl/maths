@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace DataStructures.Matrices
@@ -6,6 +7,7 @@ namespace DataStructures.Matrices
     public class Matrix
     {
         private double[][] _matrix;
+        private const double EPSILON = 0.000000000001;
 
         #region initialization
 
@@ -193,5 +195,139 @@ namespace DataStructures.Matrices
         // m
         public int NumColumns { get; protected set; }
 
+        public Matrix Transpose()
+        {
+            // swap the number of rows and number of columns
+            var matrix = new Matrix(NumColumns, NumRows);
+
+            // i will be a column index for our new matrix
+            for (int i = 0; i < NumRows; i++)
+            {
+                // j will be our new row index
+                for (int j = 0; j < NumColumns; j++)
+                {
+                    matrix[j, i] = this[i, j];
+                }
+            }
+            return matrix;
+        }
+
+        public SvDecomposition SvDecomposition()
+        {
+            // C_t * C = V * Sigma_t * Sigma * V_t
+            // C * V = U * Sigma
+
+            Matrix Ct = Transpose();
+            Matrix Ct_C = Ct * this;
+
+
+
+            return null;
+        }
+
+        public LuDecomposition LuDecomposition()
+        {
+            Matrix matrix = Clone();
+            var eliminationMatrices = new List<Matrix>();
+
+            int pivotColumn = 0;
+            int currentRow = 0;
+            while (currentRow < matrix.NumRows)
+            {
+                bool pivotNonZero = IsNonZero(matrix[currentRow, pivotColumn]);
+                if (pivotNonZero)
+                {
+                    bool allToLeftZero = true;
+                    for (int j = 0; j < pivotColumn; j++)
+                    {
+                        allToLeftZero = allToLeftZero && !IsNonZero(matrix[currentRow, pivotColumn]);
+                    }
+                    throw new NotImplementedException();
+                    if (allToLeftZero)
+                    {
+                        currentRow++;
+                        pivotColumn++;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsNonZero(double d)
+        {
+            return !AreEqual(d, 0);
+        }
+
+        private static bool AreEqual(double d1, double d2)
+        {
+            return Math.Abs(d1 - d2) < EPSILON;
+        }
+
+        private Matrix Clone()
+        {
+            var matrix = new Matrix(NumRows, NumColumns);
+            for (int i = 0; i < NumRows; i++)
+            {
+                for (int j = 0; j < NumColumns; j++)
+                {
+                    matrix[i, j] = this[i, j];
+                }
+            }
+            return matrix;
+        }
+
+        public double Determinant()
+        {
+            // make sure the matrix is square...
+            AssertDimensions(this, NumRows, NumRows);
+
+            return double.NaN;
+
+        }
+
+        public static class RowOperations
+        {
+            public static void Swap(Matrix m, int rowIndex1, int rowIndex2)
+            {
+                Vector<double> r1Copy = m.GetRow(rowIndex1);
+                for (int j = 0; j < m.NumColumns; j++)
+                {
+                    m[rowIndex1, j] = m[rowIndex2, j];
+                    m[rowIndex2, j] = r1Copy[j];
+                }
+            }
+
+            public static void Multiply(Matrix m, int rowIndex, double value)
+            {
+                for (int j = 0; j < m.NumColumns; j++)
+                {
+                    m[rowIndex, j] *= value;
+                }
+            }
+
+             public static void AddRow(Matrix m, int rowIndex, int rowToAddIx)
+             {
+                 for (int j = 0; j < m.NumColumns; j++)
+                 {
+                     m[rowIndex, j] += m[rowToAddIx, j];
+                 }
+             }
+        }
+
     }
+
+    public class SvDecomposition
+    {
+        public Matrix U { get; set; }
+        public Matrix Sigma { get; set; }
+        public Matrix Vt { get; set; }
+    }
+
+    public class LuDecomposition
+    {
+        public Matrix L { get; set; }
+        public Matrix U { get; set; }
+    }
+
 }

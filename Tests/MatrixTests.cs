@@ -53,5 +53,33 @@ namespace Tests
             Console.WriteLine(result);
         }
 
+        [Test]
+        public void TestTransposition()
+        {
+            var matrix = new Matrix(VectorType.Row, new[] {5.0, 5}, new[] {-1.0, 7});
+            Matrix transpose = matrix.Transpose();
+            Assert.AreEqual(matrix.NumRows, transpose.NumColumns);
+            Assert.AreEqual(matrix.NumColumns, transpose.NumRows);
+            Assert.AreEqual(matrix[0, 0], transpose[0, 0]);
+            Assert.AreEqual(matrix[0, 1], transpose[1, 0]);
+            Assert.AreEqual(matrix[1, 0], transpose[0, 1]);
+            Assert.AreEqual(matrix[1, 1], transpose[1, 1]);
+        }
+
+        [Test]
+        public void TestSvd()
+        {
+            var matrix = new Matrix(VectorType.Row, new[] {5.0, 5}, new[] {-1.0, 7});
+            SvDecomposition svd = matrix.SvDecomposition();
+        }
+
+        [Test]
+        public void TestLud()
+        {
+            var matrix = new Matrix(VectorType.Row, new[] {1.0, 0, 1}, new[] {2.0, 2, 2}, new[] {4.0, 4, 2});
+            LuDecomposition luDecomposition = matrix.LuDecomposition();
+            Assert.AreEqual(matrix, luDecomposition.L * luDecomposition.U);
+        }
+
     }
 }
