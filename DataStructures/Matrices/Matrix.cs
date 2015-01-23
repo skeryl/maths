@@ -229,28 +229,43 @@ namespace DataStructures.Matrices
         {
             Matrix matrix = Clone();
             var eliminationMatrices = new List<Matrix>();
+            var rowOperations = new Dictionary<int, Dictionary<int, RowOperation>>();
 
             int pivotColumn = 0;
-            int currentRow = 0;
-            while (currentRow < matrix.NumRows)
+            int row = 0;
+            while (row < matrix.NumRows)
             {
-                bool pivotNonZero = IsNonZero(matrix[currentRow, pivotColumn]);
-                if (pivotNonZero)
+                int col = 0;
+                if (!rowOperations.ContainsKey(row))
                 {
-                    bool allToLeftZero = true;
-                    for (int j = 0; j < pivotColumn; j++)
-                    {
-                        allToLeftZero = allToLeftZero && !IsNonZero(matrix[currentRow, pivotColumn]);
-                    }
-                    throw new NotImplementedException();
-                    if (allToLeftZero)
-                    {
-                        currentRow++;
-                        pivotColumn++;
-                    }
+                    rowOperations.Add(row, new Dictionary<int, RowOperation>());
                 }
+                while (col < pivotColumn)
+                {
+                    var value = matrix[row, col];
+                    if (IsNonZero(value))
+                    {
+                        for (int i = 0; i < row; i++)
+                        {
+                            double otherRowValue = matrix[i, col];
+                            if (!IsNonZero(otherRowValue))
+                            {
+                                continue;
+                            }
+                            var multiplier = value/otherRowValue;
+                            rowOperations[row].Add(col, RowOperation.AddRow(matrix, row, i, -1*multiplier));
+                        }
+                        if (rowOperations[row][col] == null && IsNonZero(matrix[row, col]))
+                        {
+                            throw new InvalidOperationException(String.Format("Failed to perform LU Decomposition. No valid row operation was performed and the value at [{0}, {1}] is not zero.", row, col));
+                        }
+                    }
+                    col++;
+                }
+                pivotColumn++;
+                row++;
             }
-
+            throw new NotImplementedException("This method is still in the process of being implemented. Currently only the Upper matrix ('U') is calculated.");
             return null;
         }
 
@@ -285,36 +300,51 @@ namespace DataStructures.Matrices
             return double.NaN;
 
         }
+        
 
-        public static class RowOperations
+    }
+
+    public class RowOperation
+    {
+        public static RowOperation Swap(Matrix m, int rowIndex1, int rowIndex2)
         {
-            public static void Swap(Matrix m, int rowIndex1, int rowIndex2)
+            Vector<double> r1Copy = m.GetRow(rowIndex1);
+            for (int j = 0; j < m.NumColumns; j++)
             {
-                Vector<double> r1Copy = m.GetRow(rowIndex1);
-                for (int j = 0; j < m.NumColumns; j++)
-                {
-                    m[rowIndex1, j] = m[rowIndex2, j];
-                    m[rowIndex2, j] = r1Copy[j];
-                }
+                m[rowIndex1, j] = m[rowIndex2, j];
+                m[rowIndex2, j] = r1Copy[j];
             }
-
-            public static void Multiply(Matrix m, int rowIndex, double value)
-            {
-                for (int j = 0; j < m.NumColumns; j++)
-                {
-                    m[rowIndex, j] *= value;
-                }
-            }
-
-             public static void AddRow(Matrix m, int rowIndex, int rowToAddIx)
-             {
-                 for (int j = 0; j < m.NumColumns; j++)
-                 {
-                     m[rowIndex, j] += m[rowToAddIx, j];
-                 }
-             }
+            return new RowOperation(rowIndex1, rowIndex2);
         }
 
+        public static RowOperation Multiply(Matrix m, int rowIndex, double value)
+        {
+            for (int j = 0; j < m.NumColumns; j++)
+            {
+                m[rowIndex, j] *= value;
+            }
+            return new RowOperation(rowIndex, rowIndex, value);
+        }
+
+        public static RowOperation AddRow(Matrix m, int rowIndex, int rowToAddIx, double multiplier = 1)
+        {
+            for (int j = 0; j < m.NumColumns; j++)
+            {
+                m[rowIndex, j] += (multiplier * m[rowToAddIx, j]);
+            }
+            return new RowOperation(rowIndex, rowToAddIx, multiplier);
+        }
+
+        private RowOperation(int rowIndex, int rowAdded, double multiplier = 1)
+        {
+            RowIndex = rowIndex;
+            RowAdded = rowAdded;
+            Multiplier = multiplier;
+        }
+
+        public int RowIndex { get; set; }
+        public int RowAdded { get; set; }
+        public double Multiplier { get; set; }
     }
 
     public class SvDecomposition
