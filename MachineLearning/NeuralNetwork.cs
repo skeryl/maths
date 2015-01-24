@@ -16,5 +16,21 @@ namespace MachineLearning
 
     public class NeuralNetwork
     {
+
+    }
+
+    public interface INode
+    {
+    }
+
+    public interface IInputNode : INode
+    {
+        double Value { get; set; }
+    }
+
+    public interface IInternalNode : INode {}
+
+    public interface IOutputNode : INode
+    {
     }
 }

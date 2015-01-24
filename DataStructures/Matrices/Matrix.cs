@@ -235,6 +235,8 @@ namespace DataStructures.Matrices
         // m
         public int NumColumns { get; protected set; }
 
+        public bool IsSquare { get { return NumRows == NumColumns; } }
+
         public Matrix Transpose()
         {
             // swap the number of rows and number of columns

@@ -8,9 +8,26 @@ namespace Tests
     public class MatrixTests
     {
         [Test]
-        public void TestMatrixInitialization()
+        public void TestMatrixRowInitialization()
         {
             var matrix = Matrix.FromRows(new[] { 1.0, 2, 3 }, new[] { 4.0, 5, 6 });
+            Assert.AreEqual(2, matrix.NumRows);
+            Assert.AreEqual(3, matrix.NumColumns);
+            Assert.AreEqual(3, matrix[0, 2]);
+            Assert.AreEqual(2, matrix[0, 1]);
+            Assert.AreEqual(6, matrix[1, 2]);
+            Console.WriteLine(matrix);
+        }
+
+        [Test]
+        public void TestMatrixColumnInitialization()
+        {
+            var matrix = Matrix.FromColumns(new[] { 1.0, 2, 3 }, new[] { 4.0, 5, 6 });
+            Assert.AreEqual(2, matrix.NumColumns);
+            Assert.AreEqual(3, matrix.NumRows);
+            Assert.AreEqual(1.0, matrix[0, 0]);
+            Assert.AreEqual(4, matrix[0, 1]);
+            Assert.AreEqual(5, matrix[1, 1]);
             Console.WriteLine(matrix);
         }
 
@@ -89,6 +106,19 @@ namespace Tests
                 new double[] { 2, 5, 4 },
                 new double[] { 7, 2, 1 });
             luDecomposition = matrix.LuDecomposition();
+            Assert.AreEqual(matrix, luDecomposition.L * luDecomposition.U);
+        }
+
+        [Test]
+        [Ignore("This is still being worked on. It 'sort of' works. The resultant matrix from L * U is almost nearly the original matrix, just with an extra row of 0's.")]
+        public void TestLudNonSquareMatrix()
+        {
+            var matrix = Matrix.FromRows(
+                new[] { 1.0, 0, 1, 1 },
+                new[] { 2.0, 2, 2, 3 },
+                new[] { 4.0, 4, 2, 4 });
+
+            LuDecomposition luDecomposition = matrix.LuDecomposition();
             Assert.AreEqual(matrix, luDecomposition.L * luDecomposition.U);
         }
 
