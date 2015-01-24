@@ -10,15 +10,15 @@ namespace Tests
         [Test]
         public void TestMatrixInitialization()
         {
-            var matrix = new Matrix(VectorType.Row, new[] { 1.0, 2, 3 }, new[] { 4.0, 5, 6 });
+            var matrix = Matrix.FromRows(new[] { 1.0, 2, 3 }, new[] { 4.0, 5, 6 });
             Console.WriteLine(matrix);
         }
 
         [Test]
         public void TestMatrixAddition()
         {
-            var matrix = new Matrix(VectorType.Row, new[] { 1.0, 2, 3 }, new[] { 4.0, 5, 6 });
-            var other = new Matrix(VectorType.Row, new[] { 1.0, 1, 1 }, new[] { 1.0, 1, 1 });
+            var matrix = Matrix.FromRows(new[] { 1.0, 2, 3 }, new[] { 4.0, 5, 6 });
+            var other = Matrix.FromRows(new[] { 1.0, 1, 1 }, new[] { 1.0, 1, 1 });
             var result = matrix.Add(other);
             Assert.AreEqual(result[0, 0], 2);
             Assert.AreEqual(result[0, 1], 3);
@@ -31,16 +31,16 @@ namespace Tests
         [Test]
         public void AssertMatrixAdditionDimensionalityCheck()
         {
-            var matrix = new Matrix(VectorType.Row, new[] { 1.0, 2, 3 }, new[] { 4.0, 5, 6 });
-            var other = new Matrix(VectorType.Row, new[] { 1.0, 1, 1 }, new[] { 1.0, 1, 1 }, new[] { 1.0, 1, 1 });
+            var matrix = Matrix.FromRows(new[] { 1.0, 2, 3 }, new[] { 4.0, 5, 6 });
+            var other = Matrix.FromRows(new[] { 1.0, 1, 1 }, new[] { 1.0, 1, 1 }, new[] { 1.0, 1, 1 });
             Assert.Throws<DimensionException>(() => matrix.Add(other));
         }
 
         [Test]
         public void TestMatrixMultiplication()
         {
-            var matrix = new Matrix(VectorType.Row, new[] { 1.0, 2, 3 }, new[] { 4.0, 5, 6 });
-            var other = new Matrix(VectorType.Row, new[] { 1.0, -1, 2 }, new[] { 1.0, 2, 4 }, new[] { 3.0, 1, 5 });
+            var matrix = Matrix.FromRows(new[] { 1.0, 2, 3 }, new[] { 4.0, 5, 6 });
+            var other = Matrix.FromRows(new[] { 1.0, -1, 2 }, new[] { 1.0, 2, 4 }, new[] { 3.0, 1, 5 });
             Matrix result = matrix.Multiply(other);
             Vector<double> row = result[0];
             Assert.AreEqual(row[0], 12);
@@ -56,7 +56,7 @@ namespace Tests
         [Test]
         public void TestTransposition()
         {
-            var matrix = new Matrix(VectorType.Row, new[] {5.0, 5}, new[] {-1.0, 7});
+            var matrix = Matrix.FromRows(new[] {5.0, 5}, new[] {-1.0, 7});
             Matrix transpose = matrix.Transpose();
             Assert.AreEqual(matrix.NumRows, transpose.NumColumns);
             Assert.AreEqual(matrix.NumColumns, transpose.NumRows);
@@ -69,16 +69,33 @@ namespace Tests
         [Test]
         public void TestSvd()
         {
-            var matrix = new Matrix(VectorType.Row, new[] {5.0, 5}, new[] {-1.0, 7});
+            var matrix = Matrix.FromRows(new[] {5.0, 5}, new[] {-1.0, 7});
             SvDecomposition svd = matrix.SvDecomposition();
         }
 
         [Test]
         public void TestLud()
         {
-            var matrix = new Matrix(VectorType.Row, new[] {1.0, 0, 1}, new[] {2.0, 2, 2}, new[] {4.0, 4, 2});
+            var matrix = Matrix.FromRows(new[] {1.0, 0, 1}, new[] {2.0, 2, 2}, new[] {4.0, 4, 2});
             LuDecomposition luDecomposition = matrix.LuDecomposition();
             Assert.AreEqual(matrix, luDecomposition.L * luDecomposition.U);
+
+            matrix = Matrix.FromRows(
+                new double[] { 1, 2, 3 },
+                new double[] { 2, 5, 4 },
+                new double[] { 7, 2, 1 });
+            luDecomposition = matrix.LuDecomposition();
+            Assert.AreEqual(matrix, luDecomposition.L * luDecomposition.U);
+        }
+
+        [Test]
+        public void TestDeterminant()
+        {
+            var matrix = Matrix.FromRows(
+                new double[] {1, 2, 3}, 
+                new double[] {2, 5, 4}, 
+                new double[] {7, 2, 1});
+            Assert.AreEqual(-44, matrix.Determinant());
         }
 
     }

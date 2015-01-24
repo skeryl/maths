@@ -6,66 +6,50 @@ namespace DataStructures.Matrices
 {
     public class Matrix
     {
-        private double[][] _matrix;
-        private const double EPSILON = 0.000000000001;
-
-        #region initialization
-
-        private void InitializeRow(double[][] items)
+        #region equality
+        protected bool Equals(Matrix other)
         {
-            NumRows = items.Length;
-            NumColumns = items[0].Length;
-            _matrix = new double[NumRows][];
-            for (int i = 0; i < NumRows; i++)
+            if (NumColumns == other.NumColumns && NumRows == other.NumRows)
             {
-                _matrix[i] = new double[NumColumns];
-                for (int j = 0; j < NumColumns; j++)
+                for (int i = 0; i < NumRows; i++)
                 {
-                    _matrix[i][j] = items[i][j];
+                    for (int j = 0; j < NumColumns; j++)
+                    {
+                        if (!AreEqual(this[i, j], other[i, j]))
+                            return false;
+                    }
                 }
+            }
+            else
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = (_matrix != null ? _matrix.GetHashCode() : 0);
+                hashCode = (hashCode*397) ^ NumColumns;
+                hashCode = (hashCode*397) ^ NumRows;
+                return hashCode;
             }
         }
 
-        private void InitializeColumn(double[][] items)
+        public override bool Equals(object obj)
         {
-            NumRows = items[0].Length;
-            NumColumns = items.Length;
-            _matrix = new double[NumRows][];
-            for (int i = 0; i < NumRows; i++)
-            {
-                _matrix[i] = new double[NumColumns];
-                for (int j = 0; j < NumColumns; j++)
-                {
-                    _matrix[i][j] = items[j][i];
-                }
-            }
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((Matrix)obj);
         }
-
         #endregion
 
-        public Matrix(int numRows, int numCols)
-        {
-            NumRows = numRows;
-            NumColumns = numCols;
-            _matrix = new double[NumRows][];
-            for (int i = 0; i < NumRows; i++)
-            {
-                _matrix[i] = new double[NumColumns];
-            }
-        }
+        private double[][] _matrix;
 
-        public Matrix(VectorType type, params double[][] items)
-        {
-            switch (type)
-            {
-                case VectorType.Row:
-                    InitializeRow(items);
-                    break;
-                case VectorType.Column:
-                    InitializeColumn(items);
-                    break;
-            }
-        }
+        private const double Epsilon = 0.000000000001;
 
         public override string ToString()
         {
@@ -80,6 +64,62 @@ namespace DataStructures.Matrices
                 builder.AppendLine(String.Format("[{0}]", string.Join(", ", colStrings)));
             }
             return builder.ToString();
+        }
+
+        public Matrix(int numRows, int numCols)
+        {
+            NumRows = numRows;
+            NumColumns = numCols;
+            _matrix = new double[NumRows][];
+            for (int i = 0; i < NumRows; i++)
+            {
+                _matrix[i] = new double[NumColumns];
+            }
+        }
+
+        public static Matrix FromRows(params double[][] items)
+        {
+            int numRows = items.Length;
+            int numColumns = items[0].Length;
+            var matrix = new Matrix(numRows, numColumns) { _matrix = new double[numRows][] };
+            for (int i = 0; i < numRows; i++)
+            {
+                matrix._matrix[i] = new double[numColumns];
+                for (int j = 0; j < numColumns; j++)
+                {
+                    matrix._matrix[i][j] = items[i][j];
+                }
+            }
+            return matrix;
+        }
+
+        public static Matrix FromColumns(params double[][] items)
+        {
+            int numRows = items[0].Length;
+            int numColumns = items.Length;
+            var matrix = new Matrix(numRows, numColumns) { _matrix = new double[numRows][] };
+            for (int i = 0; i < numRows; i++)
+            {
+                matrix._matrix[i] = new double[numColumns];
+                for (int j = 0; j < numColumns; j++)
+                {
+                    matrix._matrix[i][j] = items[j][i];
+                }
+            }
+            return matrix;
+        }
+
+        public static Matrix Identity(int rows, int cols)
+        {
+            var matrix = new Matrix(rows, cols);
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    matrix[i, j] = AreEqual(i, j) ? 1.0 : 0.0;
+                }
+            }
+            return matrix;
         }
 
         public Matrix Add(Matrix other)
@@ -227,35 +267,46 @@ namespace DataStructures.Matrices
 
         public LuDecomposition LuDecomposition()
         {
-            Matrix matrix = Clone();
-            var eliminationMatrices = new List<Matrix>();
-            var rowOperations = new Dictionary<int, Dictionary<int, RowOperation>>();
+            Matrix upper = Clone();
+            Matrix lower = Identity(upper.NumColumns, upper.NumRows);
+            var rowOperations = new List<RowOperation>();
 
-            int pivotColumn = 0;
             int row = 0;
-            while (row < matrix.NumRows)
+            int pivotColumn = 0;
+            while (row < upper.NumRows)
             {
-                int col = 0;
-                if (!rowOperations.ContainsKey(row))
+                if (!IsNonZero(upper[row, pivotColumn]))
                 {
-                    rowOperations.Add(row, new Dictionary<int, RowOperation>());
+                    for (int i = row + 1; i < upper.NumRows; i++)
+                    {
+                        if (IsNonZero(upper[i, pivotColumn]) || i == (upper.NumRows - 1))
+                        {
+                            rowOperations.Add(RowOperation.Swap(upper, row, i));
+                        }
+                    }
                 }
+                int col = 0;
                 while (col < pivotColumn)
                 {
-                    var value = matrix[row, col];
+                    var value = upper[row, col];
                     if (IsNonZero(value))
                     {
-                        for (int i = 0; i < row; i++)
+                        RowOperation rowOperation = null;
+                        for (int i = 0; i < NumRows; i++)
                         {
-                            double otherRowValue = matrix[i, col];
+                            if(i == row)
+                                continue;
+                            double otherRowValue = upper[i, col];
                             if (!IsNonZero(otherRowValue))
                             {
                                 continue;
                             }
-                            var multiplier = value/otherRowValue;
-                            rowOperations[row].Add(col, RowOperation.AddRow(matrix, row, i, -1*multiplier));
+                            var multiplier = value / otherRowValue;
+                            rowOperations.Add(rowOperation = RowOperation.AddRow(upper, row, i, -1 * multiplier));
+                            lower[row, col] = multiplier;
+                            break;
                         }
-                        if (rowOperations[row][col] == null && IsNonZero(matrix[row, col]))
+                        if (rowOperation == null && IsNonZero(upper[row, col]))
                         {
                             throw new InvalidOperationException(String.Format("Failed to perform LU Decomposition. No valid row operation was performed and the value at [{0}, {1}] is not zero.", row, col));
                         }
@@ -265,8 +316,7 @@ namespace DataStructures.Matrices
                 pivotColumn++;
                 row++;
             }
-            throw new NotImplementedException("This method is still in the process of being implemented. Currently only the Upper matrix ('U') is calculated.");
-            return null;
+            return new LuDecomposition { U = upper, L = lower };
         }
 
         private static bool IsNonZero(double d)
@@ -276,10 +326,10 @@ namespace DataStructures.Matrices
 
         private static bool AreEqual(double d1, double d2)
         {
-            return Math.Abs(d1 - d2) < EPSILON;
+            return Math.Abs(d1 - d2) < Epsilon;
         }
 
-        private Matrix Clone()
+        public Matrix Clone()
         {
             var matrix = new Matrix(NumRows, NumColumns);
             for (int i = 0; i < NumRows; i++)
@@ -294,70 +344,21 @@ namespace DataStructures.Matrices
 
         public double Determinant()
         {
-            // make sure the matrix is square...
-            AssertDimensions(this, NumRows, NumRows);
-
-            return double.NaN;
-
+            LuDecomposition luDecomposition = LuDecomposition();
+            double detL = DiagonalProduct(luDecomposition.L);
+            double detU = DiagonalProduct(luDecomposition.U);
+            return detL * detU;
         }
-        
 
-    }
-
-    public class RowOperation
-    {
-        public static RowOperation Swap(Matrix m, int rowIndex1, int rowIndex2)
+        public static double DiagonalProduct(Matrix matrix)
         {
-            Vector<double> r1Copy = m.GetRow(rowIndex1);
-            for (int j = 0; j < m.NumColumns; j++)
+            double det = 1.0;
+            for (int j = 0; j < matrix.NumColumns; j++)
             {
-                m[rowIndex1, j] = m[rowIndex2, j];
-                m[rowIndex2, j] = r1Copy[j];
+                det *= matrix[j, j];
             }
-            return new RowOperation(rowIndex1, rowIndex2);
+            return det;
         }
 
-        public static RowOperation Multiply(Matrix m, int rowIndex, double value)
-        {
-            for (int j = 0; j < m.NumColumns; j++)
-            {
-                m[rowIndex, j] *= value;
-            }
-            return new RowOperation(rowIndex, rowIndex, value);
-        }
-
-        public static RowOperation AddRow(Matrix m, int rowIndex, int rowToAddIx, double multiplier = 1)
-        {
-            for (int j = 0; j < m.NumColumns; j++)
-            {
-                m[rowIndex, j] += (multiplier * m[rowToAddIx, j]);
-            }
-            return new RowOperation(rowIndex, rowToAddIx, multiplier);
-        }
-
-        private RowOperation(int rowIndex, int rowAdded, double multiplier = 1)
-        {
-            RowIndex = rowIndex;
-            RowAdded = rowAdded;
-            Multiplier = multiplier;
-        }
-
-        public int RowIndex { get; set; }
-        public int RowAdded { get; set; }
-        public double Multiplier { get; set; }
     }
-
-    public class SvDecomposition
-    {
-        public Matrix U { get; set; }
-        public Matrix Sigma { get; set; }
-        public Matrix Vt { get; set; }
-    }
-
-    public class LuDecomposition
-    {
-        public Matrix L { get; set; }
-        public Matrix U { get; set; }
-    }
-
 }
