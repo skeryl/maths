@@ -19,7 +19,7 @@ namespace DataStructures.Matrices
 
         public Vector(params T[] values)
         {
-            Data = values;
+            Data = (T[]) values.Clone();
         }
 
         public IEnumerator<T> GetEnumerator()

@@ -71,6 +71,30 @@ namespace Tests
         }
 
         [Test]
+        public void TestMatrixScalarMultiplication()
+        {
+            var matrix = Matrix.FromRows(new[] { 1.0, 2, 3 }, new[] { 4.0, 5, 6 });
+            matrix = matrix*2;
+            Assert.AreEqual(2, matrix[0, 0]);
+            Assert.AreEqual(8, matrix[1, 0]);
+        }
+
+        [Test]
+        public void TestMatrixCloneAndEqualityComparisons()
+        {
+            var matrix = Matrix.FromRows(new[] { 1.0, 2, 3 }, new[] { 4.0, 5, 6 });
+            Matrix otherMatrix = matrix.Clone();
+            Assert.IsTrue(matrix.Equals(otherMatrix));
+            Assert.AreEqual(matrix.GetHashCode(), otherMatrix.GetHashCode());
+
+            otherMatrix[0, 0] = matrix[0, 0] + 2;
+            Assert.IsFalse(matrix.Equals(otherMatrix));
+            Assert.AreNotEqual(matrix.GetHashCode(), otherMatrix.GetHashCode());
+
+            Assert.IsTrue(matrix.Equals(matrix));
+        }
+
+        [Test]
         public void TestTransposition()
         {
             var matrix = Matrix.FromRows(new[] {5.0, 5}, new[] {-1.0, 7});
@@ -103,6 +127,13 @@ namespace Tests
 
             matrix = Matrix.FromRows(
                 new double[] { 1, 2, 3 },
+                new double[] { 2, 5, 4 },
+                new double[] { 7, 2, 1 });
+            luDecomposition = matrix.LuDecomposition();
+            Assert.AreEqual(matrix, luDecomposition.L * luDecomposition.U);
+
+            matrix = Matrix.FromRows(
+                new double[] { 0, 2, 3 },
                 new double[] { 2, 5, 4 },
                 new double[] { 7, 2, 1 });
             luDecomposition = matrix.LuDecomposition();

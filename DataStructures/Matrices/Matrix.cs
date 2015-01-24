@@ -271,7 +271,7 @@ namespace DataStructures.Matrices
         {
             Matrix upper = Clone();
             Matrix lower = Identity(upper.NumColumns, upper.NumRows);
-            var rowOperations = new List<RowOperation>();
+            var swapOperations = new List<RowOperation>();
 
             int row = 0;
             int pivotColumn = 0;
@@ -283,7 +283,8 @@ namespace DataStructures.Matrices
                     {
                         if (IsNonZero(upper[i, pivotColumn]) || i == (upper.NumRows - 1))
                         {
-                            rowOperations.Add(RowOperation.Swap(upper, row, i));
+                            swapOperations.Add(RowOperation.Swap(upper, row, i));
+                            break;
                         }
                     }
                 }
@@ -313,7 +314,7 @@ namespace DataStructures.Matrices
                                 continue;
                             }
                             var multiplier = value / otherRowValue;
-                            rowOperations.Add(rowOperation = RowOperation.AddRow(upper, row, i, -1 * multiplier));
+                            rowOperation = RowOperation.AddRow(upper, row, i, -1 * multiplier);
                             lower[row, col] = multiplier;
                             break;
                         }
@@ -326,6 +327,10 @@ namespace DataStructures.Matrices
                 }
                 pivotColumn++;
                 row++;
+            }
+            foreach (var swapOperation in swapOperations)
+            {
+                RowOperation.Swap(lower, swapOperation.RowIndex, swapOperation.RowAdded);
             }
             return new LuDecomposition { U = upper, L = lower };
         }
