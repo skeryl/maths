@@ -76,7 +76,11 @@ namespace Tests
         [Test]
         public void TestLud()
         {
-            var matrix = Matrix.FromRows(new[] {1.0, 0, 1}, new[] {2.0, 2, 2}, new[] {4.0, 4, 2});
+            var matrix = Matrix.FromRows(
+                new[] {1.0, 0, 1}, 
+                new[] {2.0, 2, 2}, 
+                new[] {4.0, 4, 2});
+
             LuDecomposition luDecomposition = matrix.LuDecomposition();
             Assert.AreEqual(matrix, luDecomposition.L * luDecomposition.U);
 
@@ -92,9 +96,9 @@ namespace Tests
         public void TestDeterminant()
         {
             var matrix = Matrix.FromRows(
-                new double[] {1, 2, 3}, 
-                new double[] {2, 5, 4}, 
-                new double[] {7, 2, 1});
+                new[] {1.0, 2, 3},
+                new[] {2.0, 5, 4},
+                new[] {7.0, 2, 1});
             Assert.AreEqual(-44, matrix.Determinant());
         }
 

@@ -301,6 +301,15 @@ namespace DataStructures.Matrices
                             {
                                 continue;
                             }
+                            bool allToLeftZero = true;
+                            for (int j = 0; j < col; j++)
+                            {
+                                allToLeftZero = allToLeftZero && !IsNonZero(upper[i, j]);
+                            }
+                            if (!allToLeftZero)
+                            {
+                                continue;
+                            }
                             var multiplier = value / otherRowValue;
                             rowOperations.Add(rowOperation = RowOperation.AddRow(upper, row, i, -1 * multiplier));
                             lower[row, col] = multiplier;
