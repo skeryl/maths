@@ -9,7 +9,13 @@ namespace Maths.OperationProviders
         public abstract T Subtract(T val, T other);
         public abstract T Multiply(T val, T other);
         public abstract T Divide(T val, T other);
+        public abstract T AddDouble(T val, double other);
+        public abstract T SubtractDouble(T val, double other);
+        public abstract T MultiplyDouble(T val, double other);
+        public abstract T DivideDouble(T val, double other);
         public abstract T Negate(T val);
+        public abstract double Power(T val, double power);
+        public abstract double Sqrt(T value);
 
         private static Dictionary<Type, Type> _providers = new Dictionary<Type, Type>
         {

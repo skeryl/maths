@@ -39,12 +39,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Matrices\Decompositions\LuDecomposition.cs" />
+    <Compile Include="Matrices\Decompositions\SvDecomposition.cs" />
     <Compile Include="Matrices\DimensionException.cs" />
-    <Compile Include="Matrices\LuDecomposition.cs" />
     <Compile Include="Matrices\Matrix.cs" />
     <Compile Include="Matrices\RowOperation.cs" />
-    <Compile Include="Matrices\RowVector.cs" />
-    <Compile Include="Matrices\SvDecomposition.cs" />
     <Compile Include="Matrices\Vector.cs" />
     <Compile Include="Matrices\VectorType.cs" />
     <Compile Include="Node\BinaryNode.cs" />

@@ -1,5 +1,6 @@
 ﻿using System;
 using DataStructures.Matrices;
+using DataStructures.Matrices.Decompositions;
 using NUnit.Framework;
 
 namespace Tests

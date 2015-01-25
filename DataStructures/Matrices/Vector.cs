@@ -17,9 +17,9 @@ namespace DataStructures.Matrices
             Data = new T[n];
         } 
 
-        public Vector(params T[] values)
+        public Vector(T[] values, bool clone = false)
         {
-            Data = (T[]) values.Clone();
+            Data = clone ? (T[])values.Clone() : values;
         }
 
         public IEnumerator<T> GetEnumerator()
@@ -58,7 +58,7 @@ namespace DataStructures.Matrices
         {
             if (vector.Length != Length)
             {
-                throw new ArgumentException(String.Format("Vector length expected to be: {0}.", length));
+                throw new InvalidOperationException(String.Format("Vector length expected to be: {0}.", length));
             }
         }
 
@@ -108,6 +108,17 @@ namespace DataStructures.Matrices
                 return same;
             }
             return comparer.Equals(this, other);
+        }
+
+        public double Distance(Vector<T> other)
+        {
+            AssertVectorLength(other, Length);
+            T distanceSquared = default(T);
+            for (int i = 0; i < Length; i++)
+            {
+                distanceSquared = MathProvider.AddDouble(distanceSquared, MathProvider.Power(MathProvider.Subtract(this[i], other[i]), 2));
+            }
+            return MathProvider.Sqrt(distanceSquared);
         }
 
         public int GetHashCode(IEqualityComparer comparer)

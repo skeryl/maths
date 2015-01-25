@@ -1,4 +1,4 @@
-﻿namespace DataStructures.Matrices
+namespace DataStructures.Matrices.Decompositions
 {
     public class SvDecomposition
     {

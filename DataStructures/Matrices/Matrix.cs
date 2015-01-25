@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using DataStructures.Matrices.Decompositions;
 
 namespace DataStructures.Matrices
 {
@@ -31,7 +32,14 @@ namespace DataStructures.Matrices
         {
             unchecked
             {
-                int hashCode = (_matrix != null ? _matrix.GetHashCode() : 0);
+                int hashCode = 1;
+                for (int i = 0; i < NumRows; i++)
+                {
+                    for (int j = 0; j < NumColumns; j++)
+                    {
+                        hashCode = Convert.ToInt32(hashCode*this[i, j]) ^ (i*j);
+                    }
+                }
                 hashCode = (hashCode*397) ^ NumColumns;
                 hashCode = (hashCode*397) ^ NumRows;
                 return hashCode;
@@ -179,7 +187,7 @@ namespace DataStructures.Matrices
 
         public Vector<double> GetRow(int m)
         {
-            return new Vector<double>(_matrix[m]);
+            return new Vector<double>(_matrix[m], true);
         }
 
         public Vector<double> GetColumn(int n)
