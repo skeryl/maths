@@ -121,6 +121,16 @@ namespace DataStructures.Matrices
             return MathProvider.Sqrt(distanceSquared);
         }
 
+        public double Norm()
+        {
+            double normSquared = 0.0;
+            for (int i = 0; i < Length; i++)
+            {
+                normSquared += MathProvider.Power(this[i], 2);
+            }
+            return Math.Sqrt(normSquared);
+        }
+
         public int GetHashCode(IEqualityComparer comparer)
         {
             return comparer.GetHashCode(this);
