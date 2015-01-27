@@ -39,6 +39,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Matrices\Decompositions\LuDecomposition.cs" />
     <Compile Include="Matrices\Decompositions\SvDecomposition.cs" />
     <Compile Include="Matrices\DimensionException.cs" />

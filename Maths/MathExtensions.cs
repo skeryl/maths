@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Maths
 {
     public static class MathExtensions
     {
+
         public static Stack<T> Clone<T>(this Stack<T> stack)
         {
             return new Stack<T>(new Stack<T>(stack));

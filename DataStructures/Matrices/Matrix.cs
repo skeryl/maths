@@ -16,7 +16,7 @@ namespace DataStructures.Matrices
                 {
                     for (int j = 0; j < NumColumns; j++)
                     {
-                        if (!AreEqual(this[i, j], other[i, j]))
+                        if (!this[i, j].IsEqualTo( other[i, j]))
                             return false;
                     }
                 }
@@ -56,8 +56,6 @@ namespace DataStructures.Matrices
         #endregion
 
         private double[][] _matrix;
-
-        private const double Epsilon = 0.000000000001;
 
         public override string ToString()
         {
@@ -124,7 +122,7 @@ namespace DataStructures.Matrices
             {
                 for (int j = 0; j < cols; j++)
                 {
-                    matrix[i, j] = AreEqual(i, j) ? 1.0 : 0.0;
+                    matrix[i, j] = (i == j) ? 1.0 : 0.0;
                 }
             }
             return matrix;
@@ -285,11 +283,11 @@ namespace DataStructures.Matrices
             int pivotColumn = 0;
             while (row < upper.NumRows)
             {
-                if (!IsNonZero(upper[row, pivotColumn]))
+                if (!upper[row, pivotColumn].IsNonZero())
                 {
                     for (int i = row + 1; i < upper.NumRows; i++)
                     {
-                        if (IsNonZero(upper[i, pivotColumn]) || i == (upper.NumRows - 1))
+                        if (upper[i, pivotColumn].IsNonZero() || i == (upper.NumRows - 1))
                         {
                             swapOperations.Add(RowOperation.Swap(upper, row, i));
                             break;
@@ -300,7 +298,7 @@ namespace DataStructures.Matrices
                 while (col < pivotColumn)
                 {
                     var value = upper[row, col];
-                    if (IsNonZero(value))
+                    if (value.IsNonZero())
                     {
                         RowOperation rowOperation = null;
                         for (int i = 0; i < NumRows; i++)
@@ -308,14 +306,14 @@ namespace DataStructures.Matrices
                             if(i == row)
                                 continue;
                             double otherRowValue = upper[i, col];
-                            if (!IsNonZero(otherRowValue))
+                            if (!otherRowValue.IsNonZero())
                             {
                                 continue;
                             }
                             bool allToLeftZero = true;
                             for (int j = 0; j < col; j++)
                             {
-                                allToLeftZero = allToLeftZero && !IsNonZero(upper[i, j]);
+                                allToLeftZero = allToLeftZero && !upper[i, j].IsNonZero();
                             }
                             if (!allToLeftZero)
                             {
@@ -326,7 +324,7 @@ namespace DataStructures.Matrices
                             lower[row, col] = multiplier;
                             break;
                         }
-                        if (rowOperation == null && IsNonZero(upper[row, col]))
+                        if (rowOperation == null && upper[row, col].IsNonZero())
                         {
                             throw new InvalidOperationException(String.Format("Failed to perform LU Decomposition. No valid row operation was performed and the value at [{0}, {1}] is not zero.", row, col));
                         }
@@ -341,16 +339,6 @@ namespace DataStructures.Matrices
                 RowOperation.Swap(lower, swapOperation.RowIndex, swapOperation.RowAdded);
             }
             return new LuDecomposition { U = upper, L = lower };
-        }
-
-        private static bool IsNonZero(double d)
-        {
-            return !AreEqual(d, 0);
-        }
-
-        private static bool AreEqual(double d1, double d2)
-        {
-            return Math.Abs(d1 - d2) < Epsilon;
         }
 
         public Matrix Clone()
