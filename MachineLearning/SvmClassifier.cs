@@ -16,49 +16,106 @@ namespace MachineLearning
         private Vector<double>[] _x;
         private string[] _classLabels;
         private readonly Dictionary<string, double> _labelValueMap = new Dictionary<string, double>();
+        
+        // determines the `accuracy` of the approximation function 
+        private double _epsilon = .5;
+        
+        // the threshold value
+        private double _b = 0.0;
+
+        private const double VerySmallValue = .00000001;
 
         public void Train(Vector<double>[] trainingData, string[] classLabels)
         {
             Initialize(trainingData, classLabels);
             while (UpdateNextAlphasUntilOptimized())
             {
-                _a1Index++;
-                _a2Index++;
+                _ix1++;
+                _ix2++;
             }
         }
 
-        private int _a1Index = 0;
-        private int _a2Index = 1;
+        private int _ix1 = 0;
+        private int _ix2 = 1;
 
         private bool UpdateNextAlphasUntilOptimized()
         {
-            double a1_old = _a[_a1Index];
-            double a2_old = _a[_a2Index];
+            double a1_old = _a[_ix1];
+            double a2_old = _a[_ix2];
 
-            double y1 = _y[_a1Index];
-            double y2 = _y[_a2Index];
+            double y1 = _y[_ix1];
+            double y2 = _y[_ix2];
 
-            var x1 = _x[_a1Index];
-            var x2 = _x[_a2Index];
+            var x1 = _x[_ix1];
+            var x2 = _x[_ix2];
+
+            var e1 = L(_ix1) - y1;
+            var e2 = L(_ix2) - y2;
 
             double c = (y1 * a1_old) + (y2 * a2_old);
             double s = y1 * y2;
 
             bool yEqual = y1.IsEqualTo(y2);
 
-            double gamma = yEqual ? a1_old + a2_old : a1_old - a2_old;
+            double a1, a2;
 
-            double a1 = _a[_a1Index] = gamma - (s * a2_old);
-
-            double L = yEqual ? Math.Max(0, a1_old + a2_old - c) : Math.Max(0, a2_old - a1_old);
-            double H = yEqual ? Math.Min(c, a1_old + a2_old) : Math.Min(c, c + a2_old - a1_old);
-            if (L.IsEqualTo(H))
+            double low = yEqual ? Math.Max(0, a1_old + a2_old - c) : Math.Max(0, a2_old - a1_old);
+            double high = yEqual ? Math.Min(c, a1_old + a2_old) : Math.Min(c, c + a2_old - a1_old);
+            if (low.IsEqualTo(high))
             {
                 return true;
             }
 
             double eta = (2 * Kernel(x1, x2)) - Kernel(x1, x1) - Kernel(x2, x2); 
-                
+            if (eta < 0)
+            {
+                a2 = a2_old - ((y2*(e1 - e2))/eta);
+                if (a2 < low)
+                {
+                    a2 = low;
+                }
+                else if (a2 > high)
+                {
+                    a2 = high;
+                }
+                //_a[_ix2] = a2;
+            }
+            else
+            {
+                _a[_ix2] = low;
+                double Lobj = L(_ix2);
+                _a[_ix2] = high;
+                double Hobj = L(_ix2);
+
+                if (Lobj > (Hobj + _epsilon))
+                {
+                    a2 = low;
+                }
+                else if (Lobj < (Hobj - _epsilon))
+                {
+                    a2 = high;
+                }
+                else
+                {
+                    a2 = a2_old;
+                }
+            }
+            if (a2 < VerySmallValue)
+            {
+                a2 = 0;
+            }
+            else if (a2 > (c - VerySmallValue))
+            {
+                a2 = c;
+            }
+            if (Math.Abs(a2 - a2_old) < (_epsilon*(a2 + a2_old + _epsilon)))
+            {
+                return false;
+            }
+            a1 = a1_old + (s*(a2_old - a2));
+            _a[_ix1] = a1;
+            _a[_ix2] = a2;
+            //
                 /*a1 + a2_old + c 
                 - (.5*(((y1*y1*(x1.DotProduct(x1))*a1)+(y2*y2*(x2.DotProduct(x2))*a2_old)+(2*(y1*y2*x1.DotProduct(x2)*a1*a2_old))) 
                 + (2*()))
@@ -100,6 +157,17 @@ namespace MachineLearning
                 _a[i] = Random.NextDouble();
                 _y[i] = _labelValueMap[classLabels[i]];
             }
+        }
+
+        private double L(int i)
+        {
+            var x = _x[i];
+            double output = 0.0;
+            for (int j = 0; j < _n; j++)
+            {
+                output += (_a[j]*_y[j]*Kernel(_x[j], x)) + _b;
+            }
+            return output;
         }
 
         private double L()
