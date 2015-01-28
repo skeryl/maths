@@ -53,6 +53,7 @@
     <Otherwise />
   </Choose>
   <ItemGroup>
+    <Compile Include="MachineLearning\SvmTests.cs" />
     <Compile Include="MatrixTests.cs" />
     <Compile Include="OperationTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -63,12 +64,22 @@
       <Project>{6A676F45-C593-4488-81CB-F087E5F1B749}</Project>
       <Name>DataStructures</Name>
     </ProjectReference>
+    <ProjectReference Include="..\DataUtilities\DataUtilities.csproj">
+      <Project>{5AACB415-509E-43D3-ACE7-201B416A7D4B}</Project>
+      <Name>DataUtilities</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MachineLearning\MachineLearning.csproj">
+      <Project>{6965BE0C-8792-4CA3-A662-F7B03284BE72}</Project>
+      <Name>MachineLearning</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Maths\Maths.csproj">
       <Project>{0BC0552D-3BF8-4733-954A-65D8A1F6D10D}</Project>
       <Name>Maths</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="MachineLearning\Data\iris-3.data" />
+    <None Include="MachineLearning\Data\iris-1-2.data" />
     <None Include="packages.config" />
   </ItemGroup>
   <Choose>

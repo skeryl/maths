@@ -29,7 +29,7 @@ namespace MachineLearning
         private readonly Dictionary<string, double> _labelValueMap = new Dictionary<string, double>();
         
         // determines the `accuracy` of the approximation function 
-        private double _epsilon = .5;
+        private double _epsilon = .3;
         
         // the threshold value
         private double _b;
@@ -38,15 +38,61 @@ namespace MachineLearning
 
         private const double VerySmallValue = .00000001;
 
-        private const double _tolerance = 0.001;
+        private const double Tolerance = 0.001;
 
         public void Train(Vector<double>[] trainingData, string[] classLabels)
         {
             Initialize(trainingData, classLabels);
+            int maxSteps = 100;
+            int step = 0;
+            bool changedAny = false;
+            bool examineAll = true;
+            while ((changedAny || examineAll) && step < maxSteps)
+            {
+                changedAny = false;
+                if (examineAll)
+                {
+                    for (int k = 0; k < _n; k++)
+                    {
+                        changedAny = changedAny || ExamineExample(k);
+                    }
+                }
+                else
+                {
+                    for (int k = 0; k < _n; k++)
+                    {
+                        if (_a[k].IsNonZero() && !_a[k].IsEqualTo(c))
+                        {
+                            changedAny = changedAny || ExamineExample(k);
+                        }
+                    }
+                }
+                if (examineAll)
+                {
+                    examineAll = false;
+                }
+                else if (!changedAny)
+                {
+                    examineAll = true;
+                }
+                step++;
+            }
         }
 
+        public double GetAccuracy()
+        {
+            double correct = 0.0;
+            for (int i = 0; i < _n; i++)
+            {
+                if (L(i) > 0 == _y[i] > 0)
+                {
+                    correct++;
+                }
+            }
+            return correct/_n;
+        }
 
-        private bool UpdateNextAlphasUntilOptimized(int ix1, int ix2)
+        private bool TakeStep(int ix1, int ix2)
         {
             double a1_old = _a[ix1];
             double a2_old = _a[ix2];
@@ -68,6 +114,7 @@ namespace MachineLearning
 
             double low = yEqual ? Math.Max(0, a1_old + a2_old - c) : Math.Max(0, a2_old - a1_old);
             double high = yEqual ? Math.Min(c, a1_old + a2_old) : Math.Min(c, c + a2_old - a1_old);
+
             if (low.IsEqualTo(high))
             {
                 return true;
@@ -138,21 +185,42 @@ namespace MachineLearning
             var a2 = _a[ix2];
             var e2 = L(ix2) - y2;
             var r2 = e2*y2;
-            if ((r2 < -_tolerance && a2 < c) || (r2 > _tolerance && a2 > 0))
+            if ((r2 < -Tolerance && a2 < c) || (r2 > Tolerance && a2 > 0))
             {
                 var nonZeroNonCAlphas = _a.Where(a => a.Value.IsNonZero() && !a.Value.IsEqualTo(c)).ToList();
-                if (nonZeroNonCAlphas.Count > 1)
+                int k, ix1;
+                double tmax;
+                for (k = 0, tmax = 0f, ix1 = -1; k < _n; k++)
                 {
-                    int k, ix1;
-                    float tmax;
-                    for (k = 0, tmax = 0f, ix1 = -1; k < _n; k++)
+                    if (_a[k] > 0 && _a[k] < c)
                     {
-                        if (_a[k] > 0 && _a[k] < c)
+                        double e1 = Math.Abs(L(k) - _y[k]);
+                        if (e1 > tmax)
                         {
-                            //float e2, temp;
-
+                            tmax = e1;
+                            ix1 = k;
                         }
                     }
+                }
+                if (ix1 >= 0)
+                {
+                    if (TakeStep(ix1, ix2))
+                        return true;
+                }
+
+                foreach (var alpha in nonZeroNonCAlphas)
+                {
+                    ix1 = alpha.Key;
+                    if (TakeStep(ix1, ix2))
+                        return true;
+                }
+
+                int kStart = Random.Next(0, _n);
+                for (k = kStart; k < _n + kStart; k++)
+                {
+                    ix1 = k % _n;
+                    if (TakeStep(ix1, ix2))
+                        return true;
                 }
             }
             return false;
@@ -178,9 +246,10 @@ namespace MachineLearning
                 throw new NotSupportedException("SVMs with more than 2 classes have not yet been implemented. For now, please use only 2 classes.");
             }
 
-            var classOne = classLabels[0];
-            var classTwo = classLabels[1];
+            var classOne = classes[0];
+            var classTwo = classes[1];
 
+            _labelValueMap.Clear();
             _labelValueMap.Add(classOne, -1);
             _labelValueMap.Add(classTwo, 1);
 
@@ -240,7 +309,7 @@ namespace MachineLearning
         protected abstract double Kernel(Vector<double> xi, Vector<double> xj);
     }
 
-    public class LinearSvmClassifier : SvmClassifier
+    public class LinearSvm : SvmClassifier
     {
         protected override double Kernel(Vector<double> xi, Vector<double> xj)
         {
