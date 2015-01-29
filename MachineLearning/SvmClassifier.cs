@@ -20,7 +20,7 @@ namespace MachineLearning
         private double[] _y;
 
         // array of input vectors
-        private Vector<double>[] _x;
+        protected Vector<double>[] _x;
 
         // array of (human friendly) class labels that correspond to the target value vector (_y)
         private string[] _classLabels;
@@ -29,25 +29,34 @@ namespace MachineLearning
         private readonly Dictionary<string, double> _labelValueMap = new Dictionary<string, double>();
         
         // determines the `accuracy` of the approximation function 
-        private double _epsilon = .3;
+        private double _epsilon = .05;
         
         // the threshold value
-        private double _b;
+        protected double _b;
 
-        private double c = 0.23675;
+        // weight vector; used by Linear SVMs only.
+        protected Vector<double> _w;
+
+        private double c = .5;
+
+        private bool _isBinary;
+        private bool _isSparse;
+
+        // number of dimensions in the input vector
+        protected int _d;
 
         private const double VerySmallValue = .00000001;
 
         private const double Tolerance = 0.001;
 
-        public void Train(Vector<double>[] trainingData, string[] classLabels)
+        protected abstract bool IsLinear { get; }
+        
+        public void Train(Vector<double>[] trainingData, string[] classLabels, bool isBinary = false, bool isSparse = false)
         {
-            Initialize(trainingData, classLabels);
-            int maxSteps = 100;
-            int step = 0;
+            Initialize(trainingData, classLabels, isBinary, isSparse);
             bool changedAny = false;
             bool examineAll = true;
-            while ((changedAny || examineAll) && step < maxSteps)
+            while ((changedAny || examineAll))
             {
                 changedAny = false;
                 if (examineAll)
@@ -75,7 +84,6 @@ namespace MachineLearning
                 {
                     examineAll = true;
                 }
-                step++;
             }
         }
 
@@ -84,7 +92,8 @@ namespace MachineLearning
             double correct = 0.0;
             for (int i = 0; i < _n; i++)
             {
-                if (L(i) > 0 == _y[i] > 0)
+                double li = LearnedFunction(i);
+                if (li > 0 == _y[i] > 0)
                 {
                     correct++;
                 }
@@ -94,6 +103,9 @@ namespace MachineLearning
 
         private bool TakeStep(int ix1, int ix2)
         {
+            if (ix1 == ix2)
+                return false;
+
             double a1_old = _a[ix1];
             double a2_old = _a[ix2];
 
@@ -103,24 +115,52 @@ namespace MachineLearning
             var x1 = _x[ix1];
             var x2 = _x[ix2];
 
-            var e1 = L(ix1) - y1;
-            var e2 = L(ix2) - y2;
+            var e1 = LearnedFunction(ix1) - y1;
+            var e2 = LearnedFunction(ix2) - y2;
 
             double s = y1 * y2;
-
-            bool yEqual = y1.IsEqualTo(y2);
-
+            
             double a1, a2;
 
-            double low = yEqual ? Math.Max(0, a1_old + a2_old - c) : Math.Max(0, a2_old - a1_old);
-            double high = yEqual ? Math.Min(c, a1_old + a2_old) : Math.Min(c, c + a2_old - a1_old);
+            double low, high;
 
+            if (y1.IsEqualTo(y2))
+            {
+                double gamma = a1_old + a2_old;
+                if (gamma > c)
+                {
+                    low = gamma - c;
+                    high = c;
+                }
+                else
+                {
+                    low = 0;
+                    high = gamma;
+                }
+            }
+            else
+            {
+                double gamma = a1_old - a2_old;
+                if (gamma > 0)
+                {
+                    low = 0;
+                    high = c - gamma;
+                }
+                else
+                {
+                    low = -gamma;
+                    high = c;
+                }
+            }
+            
             if (low.IsEqualTo(high))
             {
-                return true;
+                return false;
             }
-
-            double eta = (2 * Kernel(x1, x2)) - Kernel(x1, x1) - Kernel(x2, x2); 
+            double  k11 = Kernel(x1, x1), 
+                    k12 = Kernel(x1, x2), 
+                    k22 = Kernel(x2, x2);
+            double eta = (2 * k12) - k11 - k22; 
             if (eta < 0)
             {
                 a2 = a2_old - ((y2*(e1 - e2))/eta);
@@ -135,12 +175,11 @@ namespace MachineLearning
             }
             else
             {
-                _a[ix2] = low;
-                double lobj = L(ix2);
-                _a[ix2] = high;
-                double hobj = L(ix2);
+                double c1 = eta/2;
+                double c2 = (y2*(e1 - e2)) - (eta*a2_old);
 
-                _a[ix2] = a2_old;
+                double lobj = (c1*low*low) + (c2*low);
+                double hobj = (c1*high*high) + (c2*high);
 
                 if (lobj > (hobj + _epsilon))
                 {
@@ -172,18 +211,54 @@ namespace MachineLearning
             _a[ix2] = a2;
 
             // update the threshold to match the changes in alpha
-            var b1 = _b - e1 - (y1*(a1 - a1_old)*(x1.DotProduct(x1))) - (y2*(a2 - a2_old)*(x1.DotProduct(x2)));
+            /*var b1 = _b - e1 - (y1*(a1 - a1_old)*(x1.DotProduct(x1))) - (y2*(a2 - a2_old)*(x1.DotProduct(x2)));
             var b2 = _b - e2 - (y1*(a1 - a1_old)*(x1.DotProduct(x2))) - (y2*(a2 - a2_old)*(x2.DotProduct(x2)));
-            _b = (0 < a1 && a1 < c) ? b1 : (0 < a2 && a2 < c) ? b2 : (b1 + b2)/2;
+            _b = (0 < a1 && a1 < c) ? b1 : (0 < a2 && a2 < c) ? b2 : (b1 + b2)/2;*/
+
+            double b1, b2, bnew;
+
+            b1 = _b + e1 + y1 * (a1 - a1_old) * k11 + y2 * (a2 - a2_old) * k12;
+            b2 = _b + e2 + y1 * (a1 - a1_old) * k12 + y2 * (a2 - a2_old) * k22;
+            if (a1 > 0 && a1 < c)
+            {
+                bnew = b1;
+            }
+            else
+            {
+                if (a2 > 0 && a2 < c)
+                {
+                    bnew = b2;
+                }
+                else
+                {
+                    bnew = (b1 + b2)/2;
+                }
+            }
+            _b = bnew;
+
+            if (IsLinear)
+            {
+                UpdateW(ix1, ix2, y1, y2, a1, a2, a1_old, a2_old);
+            }
 
             return true;
+        }
+
+        private void UpdateW(int i1, int i2, double y1, double y2, double a1, double a2, double a1_old, double a2_old)
+        {
+            double t1 = y1 * (a1 - a1_old);
+            double t2 = y2 * (a2 - a2_old);
+            for (int i = 0; i < _d; i++)
+            {
+                _w[i] += ((_x[i1][i]*t1) + (_x[i2][i]*t2));
+            }
         }
 
         private bool ExamineExample(int ix2)
         {
             var y2 = _y[ix2];
             var a2 = _a[ix2];
-            var e2 = L(ix2) - y2;
+            var e2 = LearnedFunction(ix2) - y2;
             var r2 = e2*y2;
             if ((r2 < -Tolerance && a2 < c) || (r2 > Tolerance && a2 > 0))
             {
@@ -194,7 +269,7 @@ namespace MachineLearning
                 {
                     if (_a[k] > 0 && _a[k] < c)
                     {
-                        double e1 = Math.Abs(L(k) - _y[k]);
+                        double e1 = Math.Abs(LearnedFunction(k) - _y[k]);
                         if (e1 > tmax)
                         {
                             tmax = e1;
@@ -226,11 +301,16 @@ namespace MachineLearning
             return false;
         }
 
-        private void Initialize(Vector<double>[] trainingData, string[] classLabels)
+        private void Initialize(Vector<double>[] trainingData, string[] classLabels, bool isBinary, bool isSparse)
         {
+            _isBinary = isBinary;
+            _isSparse = isSparse;
+
             _b = 0;
             _x = trainingData;
             _n = _x.Length;
+            _d = _x[0].Length;
+            _w = new Vector<double>(_d);
             _a = new Dictionary<int, double>(_n + 1);
             _y = new double[_n];
 
@@ -260,7 +340,7 @@ namespace MachineLearning
             }
         }
 
-        private double L(int i)
+        protected virtual double LearnedFunction(int i)
         {
             var x = _x[i];
             double output = 0.0;
@@ -271,46 +351,27 @@ namespace MachineLearning
             return output;
         }
 
-        private double L()
-        {
-            double a = SumA();
-            double output = 0.0;
-            for (int i = 0; i < _n; i++)
-            {
-                for (int j = 0; j < _n; j++)
-                {
-                    output += (_y[i] * _y[j] * Kernel(_x[i], _x[j]) * _a[i] * _a[j]);
-                }
-            }
-            return a - (.5 * output);
-        }
-
-        private double SumA()
-        {
-            double sum = 0.0;
-            for (int i = 0; i < _n; i++)
-            {
-                sum += _a[i];
-            }
-            return sum;
-        }
-
-        /*private Vector<double> W()
-        {
-            throw new NotImplementedException("I'm not sure this is correct");
-            var w = new Vector<double>(_n);
-            for (int i = 0; i < _n; i++)
-            {
-                w[i] = _x[i].Norm() *_a[i] *_y[i];
-            }
-            return w;
-        }*/
-
         protected abstract double Kernel(Vector<double> xi, Vector<double> xj);
     }
 
     public class LinearSvm : SvmClassifier
     {
+        protected override bool IsLinear
+        {
+            get { return true; }
+        }
+
+        protected override double LearnedFunction(int k)
+        {
+            double s = 0;
+            for (int i = 0; i < _d; i++)
+            {
+                s += _w[i]*_x[k][i];
+            }
+            s -= _b;
+            return s;
+        }
+
         protected override double Kernel(Vector<double> xi, Vector<double> xj)
         {
             return xi.DotProduct(xj);
