@@ -43,6 +43,17 @@ namespace DataStructures.Matrices
             return result;
         }
 
+        public Vector<T> Subtract(Vector<T> other)
+        {
+            AssertVectorLength(other, Length);
+            var result = new Vector<T>(new T[Length]);
+            for (int i = 0; i < Length; i++)
+            {
+                result[i] = MathProvider.Subtract(this[i], other[i]);
+            }
+            return result;
+        } 
+
         public T DotProduct(Vector<T> other)
         {
             T result = default(T);
@@ -76,6 +87,16 @@ namespace DataStructures.Matrices
         public static T operator *(Vector<T> vector, Vector<T> other)
         {
             return vector.DotProduct(other);
+        }
+
+        public static Vector<T> operator +(Vector<T> vector, Vector<T> other)
+        {
+            return vector.Add(other);
+        }
+
+        public static Vector<T> operator -(Vector<T> vector, Vector<T> other)
+        {
+            return vector.Subtract(other);
         }
 
         public object Clone()

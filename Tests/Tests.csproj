@@ -78,7 +78,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="MachineLearning\Data\iris-3.data" />
+    <None Include="MachineLearning\Data\iris-2-3.data" />
     <None Include="MachineLearning\Data\iris-1-2.data" />
     <None Include="packages.config" />
   </ItemGroup>

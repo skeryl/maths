@@ -92,7 +92,7 @@ namespace MachineLearning
             double correct = 0.0;
             for (int i = 0; i < _n; i++)
             {
-                double li = LearnedFunction(i);
+                double li = LearnedFunction(_x[i]);
                 if (li > 0 == _y[i] > 0)
                 {
                     correct++;
@@ -115,8 +115,8 @@ namespace MachineLearning
             var x1 = _x[ix1];
             var x2 = _x[ix2];
 
-            var e1 = LearnedFunction(ix1) - y1;
-            var e2 = LearnedFunction(ix2) - y2;
+            var e1 = LearnedFunction(_x[ix1]) - y1;
+            var e2 = LearnedFunction(_x[ix2]) - y2;
 
             double s = y1 * y2;
             
@@ -258,7 +258,7 @@ namespace MachineLearning
         {
             var y2 = _y[ix2];
             var a2 = _a[ix2];
-            var e2 = LearnedFunction(ix2) - y2;
+            var e2 = LearnedFunction(_x[ix2]) - y2;
             var r2 = e2*y2;
             if ((r2 < -Tolerance && a2 < c) || (r2 > Tolerance && a2 > 0))
             {
@@ -269,7 +269,7 @@ namespace MachineLearning
                 {
                     if (_a[k] > 0 && _a[k] < c)
                     {
-                        double e1 = Math.Abs(LearnedFunction(k) - _y[k]);
+                        double e1 = Math.Abs(LearnedFunction(_x[k]) - _y[k]);
                         if (e1 > tmax)
                         {
                             tmax = e1;
@@ -340,14 +340,14 @@ namespace MachineLearning
             }
         }
 
-        protected virtual double LearnedFunction(int i)
+        protected virtual double LearnedFunction(Vector<double> input)
         {
-            var x = _x[i];
             double output = 0.0;
             for (int j = 0; j < _n; j++)
             {
-                output += (_a[j]*_y[j]*Kernel(_x[j], x)) + _b;
+                output += Kernel(input, _x[j]) * _a[j];
             }
+            output -= _b;
             return output;
         }
 
@@ -361,12 +361,12 @@ namespace MachineLearning
             get { return true; }
         }
 
-        protected override double LearnedFunction(int k)
+        protected override double LearnedFunction(Vector<double> input)
         {
             double s = 0;
             for (int i = 0; i < _d; i++)
             {
-                s += _w[i]*_x[k][i];
+                s += _w[i]*input[i];
             }
             s -= _b;
             return s;
@@ -375,6 +375,30 @@ namespace MachineLearning
         protected override double Kernel(Vector<double> xi, Vector<double> xj)
         {
             return xi.DotProduct(xj);
+        }
+    }
+
+    public abstract class NonLinearSvm : SvmClassifier
+    {
+        protected override bool IsLinear
+        {
+            get { return false; }
+        }
+    }
+
+    public class PolynomialSvm : NonLinearSvm
+    {
+        protected override double Kernel(Vector<double> xi, Vector<double> xj)
+        {
+            return Math.Pow(xi * xj, _d);
+        }
+    }
+
+    public class RbfSvm : NonLinearSvm
+    {
+        protected override double Kernel(Vector<double> xi, Vector<double> xj)
+        {
+            return Math.Exp(-.5*Math.Pow((xi - xj).Norm(), 2));
         }
     }
 }
