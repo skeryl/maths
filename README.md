@@ -1,4 +1,4 @@
 maths
 =====
 
-A C# library for expression evaluation and other mathematical operations.
+A C# library for expression parsing & evaluation, machine learning, and other mathematical operations.
