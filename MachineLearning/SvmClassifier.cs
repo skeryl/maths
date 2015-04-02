@@ -211,14 +211,9 @@ namespace MachineLearning
             _a[ix2] = a2;
 
             // update the threshold to match the changes in alpha
-            /*var b1 = _b - e1 - (y1*(a1 - a1_old)*(x1.DotProduct(x1))) - (y2*(a2 - a2_old)*(x1.DotProduct(x2)));
-            var b2 = _b - e2 - (y1*(a1 - a1_old)*(x1.DotProduct(x2))) - (y2*(a2 - a2_old)*(x2.DotProduct(x2)));
-            _b = (0 < a1 && a1 < c) ? b1 : (0 < a2 && a2 < c) ? b2 : (b1 + b2)/2;*/
-
-            double b1, b2, bnew;
-
-            b1 = _b + e1 + y1 * (a1 - a1_old) * k11 + y2 * (a2 - a2_old) * k12;
-            b2 = _b + e2 + y1 * (a1 - a1_old) * k12 + y2 * (a2 - a2_old) * k22;
+            double bnew;
+            double b1 = _b + e1 + y1 * (a1 - a1_old) * k11 + y2 * (a2 - a2_old) * k12;
+            double b2 = _b + e2 + y1 * (a1 - a1_old) * k12 + y2 * (a2 - a2_old) * k22;
             if (a1 > 0 && a1 < c)
             {
                 bnew = b1;
